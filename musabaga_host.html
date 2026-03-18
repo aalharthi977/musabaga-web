@@ -585,6 +585,7 @@ const AVATARS = ['🦁','🐯','🦊','🐼','🦅','🦋','🐉','🦄','🐺',
 const COLORS = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6','#ef4444','#06b6d4','#f97316'];
 
 let roomCode = '';
+let autoStartCount = 0; // 0 = disabled
 let gameQuestions = [];
 let currentQ = -1;
 let timerInterval = null;
@@ -686,6 +687,12 @@ _registerFn('finishGame', async function() {
     .sort((a,b)=>(b.score||0)-(a.score||0));
   const medals = ['🥈','🥇','🥉'];
   const top3 = [players[1],players[0],players[2]].filter(Boolean);
+  // signal players to go to new game after 8 seconds
+  setTimeout(async () => {
+    const newRoom = Math.random().toString(36).substring(2,7).toUpperCase();
+    await update(ref(db, `rooms/${roomCode}`), { nextRoom: newRoom });
+  }, 8000);
+
   document.getElementById('q-area').innerHTML = `
     <div class="state-screen">
       <div class="big-icon">🏆</div>
@@ -743,6 +750,7 @@ function listenRoom() {
     renderPlayersSidebar();
     if (phase === 'lobby') renderLobby();
     if (phase === 'question') renderAnsweredCount();
+    checkAutoStart();
   });
 }
 
@@ -774,32 +782,70 @@ function renderLobby() {
     .replace(/[?#].*$/, '')
     .replace(/musabaga_host\.html$/i, 'musabaga_player.html')
     + '?room=' + roomCode;
-  const count = Object.keys(playersCache).length;
+  const players = Object.entries(playersCache).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0));
+  const count = players.length;
+  const autoVal = autoStartCount > 0 ? autoStartCount : '';
+
   document.getElementById('q-area').innerHTML = `
     <div class="state-screen">
       <div class="phase-badge">⏳ انتظار اللاعبين</div>
       <div class="room-code-big">${roomCode}</div>
-      <div id="qr-wrap"><img id="qrcode-img" src="" alt="QR" style="width:130px;height:130px;border-radius:8px"></div>
-      <div class="join-url">${playerLink}</div>
-      <button class="btn btn-outline" onclick="copyLink('${playerLink}')">📋 نسخ الرابط</button>
-      <div style="color:var(--muted);font-size:15px;margin-top:8px">
-        ${count} لاعب انضم — في انتظار المزيد
+
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;margin-bottom:4px">
+        <div class="join-url" style="font-size:15px;color:var(--text)">${playerLink}</div>
+        <button class="btn btn-outline" onclick="copyLink('${playerLink}')">📋 نسخ الرابط</button>
       </div>
+
+      <!-- Auto-start config -->
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:12px 18px;margin:8px 0">
+        <span style="color:var(--muted);font-size:13px;white-space:nowrap">ابدأ تلقائياً عند وصول</span>
+        <input type="number" id="auto-start-input" min="1" max="50" value="${autoVal}"
+          placeholder="—"
+          oninput="updateAutoStart(this.value)"
+          style="width:64px;padding:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:16px;font-weight:700;text-align:center;outline:none">
+        <span style="color:var(--muted);font-size:13px">لاعب</span>
+        ${autoStartCount>0 ? `<span style="color:var(--gold);font-size:12px;font-weight:700">مفعّل ✓</span>` : ''}
+      </div>
+
+      <!-- Players joined -->
+      <div style="width:100%;max-width:500px;text-align:right">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
+          ${count} لاعب انضم
+          ${autoStartCount>0 ? `— ينتظر ${Math.max(0,autoStartCount-count)} لاعب إضافي للبدء التلقائي` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto" id="lobby-players-list">
+          ${players.map(([id,p],i)=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px">
+              <div style="width:28px;height:28px;border-radius:50%;background:${p.color||'#555'};display:flex;align-items:center;justify-content:center;font-size:13px">${p.avatar||'👤'}</div>
+              <div style="font-size:14px;font-weight:700">${p.name}</div>
+              <div style="margin-right:auto;font-size:11px;color:var(--muted)">#${i+1}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      ${autoStartCount>0&&count>=autoStartCount ? '' : `
       <div class="btns-row">
         <button class="btn btn-gold" onclick="startGame()" ${count<1?'disabled style="opacity:.5"':''}>
-          🚀 ابدأ المسابقة
+          🚀 ابدأ الآن
         </button>
-      </div>
+      </div>`}
     </div>
   `;
-  // generate QR using Google Charts API
-  setTimeout(() => {
-    const img = document.getElementById('qrcode-img');
-    if (img) {
-      const encoded = encodeURIComponent(playerLink);
-      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encoded}&bgcolor=ffffff&color=000000`;
-    }
-  }, 100);
+  checkAutoStart();
+}
+
+window.updateAutoStart = function(val) {
+  autoStartCount = parseInt(val) || 0;
+  checkAutoStart();
+};
+
+function checkAutoStart() {
+  if (phase !== 'lobby') return;
+  if (autoStartCount <= 0) return;
+  const count = Object.keys(playersCache).length;
+  if (count >= autoStartCount) {
+    window.startGame();
+  }
 }
 
 
