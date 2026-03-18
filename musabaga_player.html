@@ -407,8 +407,8 @@ function listenRoom() {
     const data = snap.val();
     const q = data.currentQ;
 
-    // Show scheduled start countdown
-    if (data.startAt && data.phase === 'lobby') {
+    // Show scheduled start countdown (only in lobby, only if time not yet reached)
+    if (data.startAt && data.startAt > 0 && data.phase === 'lobby') {
       const msLeft = data.startAt - Date.now();
       if (msLeft > 0) {
         showScheduledCountdown(data.startAt);
@@ -423,6 +423,8 @@ function listenRoom() {
     }
 
     if (data.phase === 'question') {
+      // Clear any scheduled countdown timer
+      if (typeof scheduledTimer !== 'undefined') clearInterval(scheduledTimer);
       if (q !== undefined && q !== currentQIdx) {
         currentQIdx = q;
         hasAnswered = false;
