@@ -394,8 +394,8 @@ function listenRoom() {
     const data = snap.val();
     const q = data.currentQ;
 
-    // Show countdown to players
-    if (data.countdown !== undefined && data.countdown > 0 && data.phase === 'lobby') {
+    // Show countdown to players — check before phase changes
+    if (data.countdown !== undefined && data.countdown > 0) {
       showPlayerCountdown(data.countdown);
       return;
     }
