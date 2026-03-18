@@ -759,7 +759,7 @@ function listenRoom() {
     playersCache = snap.val() || {};
     document.getElementById('stat-players').textContent = Object.keys(playersCache).length;
     renderPlayersSidebar();
-    if (phase === 'lobby') renderLobby();
+    if (phase === 'lobby' && !countdownInterval) renderLobby();
     if (phase === 'question') renderAnsweredCount();
     checkAutoStart();
   });
@@ -837,7 +837,7 @@ function renderLobby() {
       ${autoStartCount>0 && count>=autoStartCount
         ? `<div style="text-align:center;margin-top:12px">
              <div style="font-size:14px;color:var(--muted);margin-bottom:6px">اكتمل العدد! تبدأ اللعبة خلال</div>
-             <div style="font-size:56px;font-weight:900;color:#e91e8c;line-height:1" id="countdown-num">5</div>
+             <div style="font-size:56px;font-weight:900;color:#e91e8c;line-height:1" id="countdown-num">${countdownSec}</div>
              <div style="font-size:13px;color:var(--muted)">ثوانٍ</div>
            </div>`
         : `<div class="btns-row">
@@ -856,11 +856,15 @@ window.updateAutoStart = function(val) {
 };
 
 let countdownInterval = null;
+let countdownSec = 5;
+
 function checkAutoStart() {
   if (phase !== 'lobby') return;
   if (autoStartCount <= 0) return;
   const count = Object.keys(playersCache).length;
   if (count >= autoStartCount && !countdownInterval) {
+    countdownSec = 5;
+    renderLobby(); // re-render to show countdown UI
     startCountdown();
   } else if (count < autoStartCount && countdownInterval) {
     clearInterval(countdownInterval);
@@ -870,16 +874,15 @@ function checkAutoStart() {
 }
 
 function startCountdown() {
-  let sec = 5;
   const updateEl = () => {
     const el = document.getElementById('countdown-num');
-    if (el) el.textContent = sec;
+    if (el) el.textContent = countdownSec;
   };
   updateEl();
   countdownInterval = setInterval(() => {
-    sec--;
+    countdownSec--;
     updateEl();
-    if (sec <= 0) {
+    if (countdownSec <= 0) {
       clearInterval(countdownInterval);
       countdownInterval = null;
       window.startGame();
