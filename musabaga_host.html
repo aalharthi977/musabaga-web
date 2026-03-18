@@ -450,6 +450,17 @@ function listenAnswers(qIdx) {
   onValue(aRef, snap => {
     answersCache = snap.val() || {};
     renderAnsweredCount();
+    // Auto-reveal when ALL players have answered
+    if (phase === 'question') {
+      const totalPlayers = Object.keys(playersCache).length;
+      const answeredCount = Object.keys(answersCache).length;
+      if (totalPlayers > 0 && answeredCount >= totalPlayers) {
+        // small delay so last answer registers visually
+        setTimeout(() => {
+          if (phase === 'question') window.revealAnswer();
+        }, 800);
+      }
+    }
   });
 }
 
