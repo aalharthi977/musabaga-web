@@ -585,7 +585,7 @@ const AVATARS = ['🦁','🐯','🦊','🐼','🦅','🦋','🐉','🦄','🐺',
 const COLORS = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6','#ef4444','#06b6d4','#f97316'];
 
 let roomCode = '';
-let autoStartCount = 0; // 0 = disabled
+let autoStartCount = 2; // default 2 for testing
 let gameQuestions = [];
 let currentQ = -1;
 let timerInterval = null;
@@ -687,11 +687,16 @@ _registerFn('finishGame', async function() {
     .sort((a,b)=>(b.score||0)-(a.score||0));
   const medals = ['🥈','🥇','🥉'];
   const top3 = [players[1],players[0],players[2]].filter(Boolean);
-  // signal players to go to new game after 8 seconds
+  // After 10s create new room and set as activeRoom — players auto-join
   setTimeout(async () => {
     const newRoom = Math.random().toString(36).substring(2,7).toUpperCase();
-    await update(ref(db, `rooms/${roomCode}`), { nextRoom: newRoom });
-  }, 8000);
+    await set(ref(db, `rooms/${newRoom}`), {
+      phase: 'lobby', currentQ: -1, createdAt: Date.now()
+    });
+    await set(ref(db, 'activeRoom'), newRoom);
+    // reload host to new room
+    setTimeout(() => location.reload(), 500);
+  }, 10000);
 
   document.getElementById('q-area').innerHTML = `
     <div class="state-screen">
@@ -733,6 +738,8 @@ async function init() {
     currentQ: -1,
     createdAt: Date.now(),
   });
+  // Set as the global active room so players can find it
+  await set(ref(db, 'activeRoom'), roomCode);
 
   listenRoom();
   renderLobby();
@@ -778,10 +785,10 @@ function listenAnswers(qIdx) {
 ════════════════════════════════════ */
 function renderLobby() {
   phase = 'lobby';
+  // Fixed player URL — no room code needed
   const playerLink = location.href
     .replace(/[?#].*$/, '')
-    .replace(/musabaga_host\.html$/i, 'musabaga_player.html')
-    + '?room=' + roomCode;
+    .replace(/musabaga_host\.html$/i, 'musabaga_player.html');
   const players = Object.entries(playersCache).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0));
   const count = players.length;
   const autoVal = autoStartCount > 0 ? autoStartCount : '';
