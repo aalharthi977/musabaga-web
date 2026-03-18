@@ -214,6 +214,13 @@ window.startGame       = function() { _Q.startGame       && _Q.startGame();     
 window.endGame         = function() { _Q.endGame         && _Q.endGame();         };
 window.copyLink        = function(u) { _Q.copyLink       && _Q.copyLink(u);       };
 window.showLeaderboardScreen = function() { _Q.showLeaderboardScreen && _Q.showLeaderboardScreen(); };
+window.toggleLoop      = function(v) { _Q.toggleLoop     && _Q.toggleLoop(v);     };
+window.updateScheduleFromPicker = function() { _Q.updateScheduleFromPicker && _Q.updateScheduleFromPicker(); };
+window.updateSchedule  = function(v) { _Q.updateSchedule  && _Q.updateSchedule(v);  };
+window.updateAutoStart = function(v) { _Q.updateAutoStart && _Q.updateAutoStart(v); };
+_registerFn('updateScheduleFromPicker', function() { _Q.updateScheduleFromPicker && _Q.updateScheduleFromPicker(); });
+window.showWinnersPanel = function() { _Q.showWinnersPanel && _Q.showWinnersPanel(); };
+window.exportWinners   = function() { _Q.exportWinners   && _Q.exportWinners();   };
 </script>
 <script type="module" id="main-module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -898,10 +905,12 @@ function renderLobby() {
             </option>`).join('')}
           </select>
           <span style="color:var(--muted);font-weight:700">:</span>
-          <select id="schedule-min" onchange="updateScheduleFromPicker()"
-            style="padding:6px 8px;background:#fff5f8;border:1px solid #f8bbd0;border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;outline:none;cursor:pointer">
-            ${['00','05','10','15','20','25','30','35','40','45','50','55'].map(m=>`<option value="${m}" ${scheduledStartAt>0&&String(new Date(scheduledStartAt).toLocaleString('en-US',{timeZone:'Asia/Riyadh',minute:'numeric'})).padStart(2,'0')===m?'selected':''}>${m}</option>`).join('')}
-          </select>
+          <input type="number" id="schedule-min" min="0" max="59"
+            value="${scheduledStartAt>0 ? String(parseInt(new Date(scheduledStartAt).toLocaleString('en-US',{timeZone:'Asia/Riyadh',minute:'numeric'}))).padStart(2,'0') : ''}"
+            placeholder="دق"
+            onchange="updateScheduleFromPicker()"
+            oninput="if(this.value>59)this.value=59;if(this.value<0)this.value=0"
+            style="width:56px;padding:6px 8px;background:#fff5f8;border:1px solid #f8bbd0;border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:15px;font-weight:700;text-align:center;outline:none">
           ${scheduledStartAt>0?`<span style="color:#e91e8c;font-size:12px;font-weight:700">${schedStr} ✓</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px">
@@ -942,12 +951,12 @@ function renderLobby() {
   if (phase === 'lobby') checkAutoStart();
 }
 
-window.updateAutoStart = function(val) {
+_registerFn('updateAutoStart', function(val) {
   autoStartCount = parseInt(val) || 0;
   checkAutoStart();
-};
+});
 
-window.updateSchedule = function(val) {
+_registerFn('updateSchedule', function(val) {
   if (!val) { scheduledStartAt = 0; update(ref(db, `rooms/${roomCode}`), {startAt: 0}); return; }
   const [hh, mm] = val.split(':').map(Number);
   const now = new Date();
@@ -957,11 +966,11 @@ window.updateSchedule = function(val) {
   update(ref(db, `rooms/${roomCode}`), {startAt: scheduledStartAt});
   startScheduleWatcher();
   renderLobby();
-};
+});
 
-window.updateScheduleFromPicker = function() {
+_registerFn('updateScheduleFromPicker', function() {
   const h = document.getElementById('schedule-hour')?.value;
-  const m = document.getElementById('schedule-min')?.value;
+  const m = String(parseInt(document.getElementById('schedule-min')?.value)||0).padStart(2,'0');
   if (!h || h === '') { scheduledStartAt = 0; update(ref(db, `rooms/${roomCode}`), {startAt: 0}); renderLobby(); return; }
   // Build KSA time: KSA = UTC+3, so subtract 3 hours to get UTC
   const now = new Date();
@@ -979,10 +988,10 @@ window.updateScheduleFromPicker = function() {
   renderLobby();
 };
 
-window.toggleLoop = function(val) {
+_registerFn('toggleLoop', function(val) {
   autoLoop = val;
   renderLobby();
-};
+});
 
 let scheduleWatchInterval = null;
 function startScheduleWatcher() {
