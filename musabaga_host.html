@@ -620,8 +620,8 @@ _registerFn('startGame', async function() {
   currentQ = 0;
   document.getElementById('btn-end').style.display = 'flex';
   document.getElementById('stat-q').textContent = `1/${gameQuestions.length}`;
-  // Clear countdown so players move to question screen
-  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0, countdown:0 });
+  // Clear countdown + startAt so players stop showing scheduled countdown
+  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0, countdown:0, startAt:0 });
   await pushQuestion(0);
 });
 
