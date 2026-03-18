@@ -618,7 +618,8 @@ _registerFn('startGame', async function() {
   currentQ = 0;
   document.getElementById('btn-end').style.display = 'flex';
   document.getElementById('stat-q').textContent = `1/${gameQuestions.length}`;
-  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0 });
+  // Clear countdown so players move to question screen
+  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0, countdown:0 });
   await pushQuestion(0);
 });
 
@@ -883,10 +884,8 @@ function checkAutoStart() {
         </div>`;
     }
     startCountdown();
-    // Also broadcast countdown to players via Firebase
-    import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js').then(({update,ref})=>{
-      update(ref(db, `rooms/${roomCode}`), { countdown: countdownSec });
-    });
+    // Broadcast initial countdown to players
+    update(ref(db, `rooms/${roomCode}`), { countdown: countdownSec });
   } else if (count < autoStartCount && countdownInterval) {
     clearInterval(countdownInterval);
     countdownInterval = null;
