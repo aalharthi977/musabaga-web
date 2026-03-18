@@ -761,7 +761,7 @@ function listenRoom() {
     renderPlayersSidebar();
     if (phase === 'lobby' && !countdownInterval) renderLobby();
     if (phase === 'question') renderAnsweredCount();
-    checkAutoStart();
+    if (phase === 'lobby') checkAutoStart();
   });
 }
 
@@ -864,8 +864,29 @@ function checkAutoStart() {
   const count = Object.keys(playersCache).length;
   if (count >= autoStartCount && !countdownInterval) {
     countdownSec = 5;
-    renderLobby(); // re-render to show countdown UI
+    // Update DOM directly — no re-render to avoid loop
+    const area = document.getElementById('q-area');
+    if (area) {
+      area.innerHTML = `
+        <div class="state-screen">
+          <div class="phase-badge">🌸 اكتمل العدد!</div>
+          <div style="font-size:16px;color:var(--muted);margin-bottom:8px">تبدأ اللعبة خلال</div>
+          <div style="font-size:100px;font-weight:900;color:#e91e8c;line-height:1;filter:drop-shadow(0 0 20px rgba(233,30,140,.3))" id="countdown-num">5</div>
+          <div style="font-size:16px;color:var(--muted);margin-top:4px">ثوانٍ</div>
+          <div style="margin-top:24px;display:flex;flex-direction:column;gap:6px;width:100%;max-width:400px">
+            ${Object.entries(playersCache).map(([id,p])=>`
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;border:1px solid #f8bbd0;border-radius:10px">
+                <div style="width:28px;height:28px;border-radius:50%;background:${p.color||'#e91e8c'};display:flex;align-items:center;justify-content:center;font-size:13px">${p.avatar||'👤'}</div>
+                <div style="font-weight:700;color:var(--text)">${p.name}</div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
     startCountdown();
+    // Also broadcast countdown to players via Firebase
+    import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js').then(({update,ref})=>{
+      update(ref(db, `rooms/${roomCode}`), { countdown: countdownSec });
+    });
   } else if (count < autoStartCount && countdownInterval) {
     clearInterval(countdownInterval);
     countdownInterval = null;
@@ -877,6 +898,8 @@ function startCountdown() {
   const updateEl = () => {
     const el = document.getElementById('countdown-num');
     if (el) el.textContent = countdownSec;
+    // broadcast to players
+    update(ref(db, `rooms/${roomCode}`), { countdown: countdownSec });
   };
   updateEl();
   countdownInterval = setInterval(() => {
@@ -885,6 +908,7 @@ function startCountdown() {
     if (countdownSec <= 0) {
       clearInterval(countdownInterval);
       countdownInterval = null;
+      update(ref(db, `rooms/${roomCode}`), { countdown: 0 });
       window.startGame();
     }
   }, 1000);
