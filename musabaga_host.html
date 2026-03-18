@@ -926,7 +926,7 @@ function renderLobby() {
         </div>
         <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px">
           <span style="color:var(--muted);font-size:12px;white-space:nowrap">تكرار بعد ساعة</span>
-          <div id="loop-toggle-btn" onclick="toggleLoop(!autoLoop)"
+          <div id="loop-toggle-btn" onclick="toggleLoop(this.dataset.state!=='true')" data-state="${autoLoop}"
             style="width:44px;height:24px;border-radius:12px;background:${autoLoop?'#e91e8c':'#ccc'};cursor:pointer;position:relative;transition:background .3s;flex-shrink:0;border:none">
             <div style="position:absolute;top:3px;left:${autoLoop?'22':'3'}px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
           </div>
