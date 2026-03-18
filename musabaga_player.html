@@ -2,151 +2,222 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>مسابقة — انضم</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مسابقة — شاشة المضيف</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0b0f1a;--panel:#131929;--card:#1a2236;
   --gold:#f0c040;--gold2:#e8a820;--gold3:#fde080;
-  --correct:#22c55e;--wrong:#ef4444;
+  --correct:#22c55e;--wrong:#ef4444;--blue:#3b82f6;
   --text:#f0ede4;--muted:#8a8fa8;--border:#2a3050;
-  --A:#f59e0b;--B:#3b82f6;--C:#ec4899;--D:#10b981;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);
-  font-family:'Tajawal',sans-serif;overflow-x:hidden}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;overflow:hidden}
+
+/* bg grid */
 body::before{content:'';position:fixed;inset:0;
-  background-image:linear-gradient(rgba(240,192,64,.03) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(240,192,64,.03) 1px,transparent 1px);
+  background-image:linear-gradient(rgba(240,192,64,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(240,192,64,0.03) 1px,transparent 1px);
   background-size:40px 40px;pointer-events:none;z-index:0}
 
-#app{position:relative;z-index:1;min-height:100vh;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:20px 16px}
+#app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column}
 
-/* ── JOIN SCREEN ── */
-.join-card{background:var(--card);border:1px solid var(--border);
-  border-radius:24px;padding:32px 28px;width:100%;max-width:400px;
-  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.join-logo{font-size:48px;margin-bottom:12px}
-.join-title{font-size:28px;font-weight:900;
-  background:linear-gradient(135deg,var(--gold2),var(--gold3));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  margin-bottom:6px}
-.join-sub{color:var(--muted);font-size:14px;margin-bottom:28px}
-.input-field{width:100%;padding:14px 18px;
-  background:rgba(255,255,255,.06);border:1.5px solid var(--border);
-  border-radius:14px;color:var(--text);font-size:18px;font-weight:700;
-  font-family:'Tajawal',sans-serif;text-align:center;
-  outline:none;transition:border-color .2s;margin-bottom:12px;direction:ltr}
-.input-field:focus{border-color:rgba(240,192,64,.5)}
-.input-field::placeholder{color:var(--muted);font-weight:400;direction:rtl}
-.btn-join{width:100%;padding:16px;border-radius:50px;border:none;
-  background:linear-gradient(135deg,var(--gold2),var(--gold));
-  color:#0b0f1a;font-size:19px;font-weight:900;
-  cursor:pointer;font-family:'Tajawal',sans-serif;
-  transition:all .25s;box-shadow:0 4px 20px rgba(240,192,64,.35);margin-top:4px}
-.btn-join:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(240,192,64,.5)}
-.btn-join:disabled{opacity:.5;cursor:default;transform:none}
-.err{color:var(--wrong);font-size:13px;margin-top:8px}
+/* ── TOP BAR ── */
+.top-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;
+  background:var(--panel);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.top-logo{font-size:20px;font-weight:900;
+  background:linear-gradient(135deg,var(--gold2),var(--gold),var(--gold3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.top-stats{display:flex;gap:16px;align-items:center}
+.stat-chip{display:flex;flex-direction:column;align-items:center;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:6px 14px;min-width:70px}
+.stat-chip .val{font-size:20px;font-weight:900;color:var(--gold);line-height:1}
+.stat-chip .lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.top-controls{display:flex;gap:8px}
 
-/* ── WAITING ── */
-.waiting-screen{text-align:center;padding:20px}
-.waiting-avatar{width:90px;height:90px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:42px;margin:0 auto 16px;
-  box-shadow:0 0 30px rgba(240,192,64,.2)}
-.waiting-name{font-size:26px;font-weight:900;margin-bottom:8px}
-.waiting-score{font-size:18px;color:var(--gold);font-weight:700;margin-bottom:6px}
-.waiting-rank{color:var(--muted);font-size:14px;margin-bottom:24px}
-.pulse-ring{display:inline-flex;align-items:center;justify-content:center;
-  width:60px;height:60px;border-radius:50%;position:relative}
-.pulse-ring::before{content:'';position:absolute;inset:0;border-radius:50%;
-  border:2px solid var(--gold);animation:pulseRing 1.5s ease-in-out infinite}
-.pulse-ring::after{content:'';position:absolute;inset:8px;border-radius:50%;
-  border:2px solid rgba(240,192,64,.4);animation:pulseRing 1.5s ease-in-out .5s infinite}
-@keyframes pulseRing{0%{transform:scale(1);opacity:1}100%{transform:scale(1.6);opacity:0}}
-.hourglass{font-size:28px;animation:spin 2s linear infinite}
-@keyframes spin{0%,100%{transform:rotate(0)}50%{transform:rotate(180deg)}}
+/* ── MAIN ── */
+.main{flex:1;display:grid;grid-template-columns:1fr 280px;gap:0;overflow:hidden}
 
-/* ── QUESTION SCREEN ── */
-.q-screen{width:100%;max-width:460px}
-.q-header{display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:14px}
-.q-cat{background:rgba(240,192,64,.12);color:var(--gold);
-  border:1px solid rgba(240,192,64,.3);padding:4px 12px;
-  border-radius:20px;font-size:12px;font-weight:700}
-.timer-bar-wrap{height:6px;background:var(--border);border-radius:3px;
-  margin-bottom:16px;overflow:hidden}
-.timer-bar{height:100%;border-radius:3px;
-  background:linear-gradient(90deg,var(--gold),var(--gold2));
-  transition:width .9s linear,background .5s;width:100%}
-.timer-bar.urgent{background:linear-gradient(90deg,var(--wrong),#f97316)}
-.q-text-card{background:var(--card);border:1px solid var(--border);
-  border-radius:18px;padding:20px;margin-bottom:16px;
-  font-size:clamp(16px,4vw,20px);font-weight:700;line-height:1.5;
-  text-align:center}
-.opts-player{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.opt-player{padding:18px 14px;border-radius:16px;border:2.5px solid transparent;
-  font-size:clamp(14px,4vw,17px);font-weight:700;
-  cursor:pointer;font-family:'Tajawal',sans-serif;
-  transition:all .2s;text-align:center;color:#fff;
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  user-select:none;-webkit-tap-highlight-color:transparent}
-.opt-player:active{transform:scale(.96)}
-.opt-player[data-i="0"]{background:var(--A);box-shadow:0 4px 16px rgba(245,158,11,.3)}
-.opt-player[data-i="1"]{background:var(--B);box-shadow:0 4px 16px rgba(59,130,246,.3)}
-.opt-player[data-i="2"]{background:var(--C);box-shadow:0 4px 16px rgba(236,72,153,.3)}
-.opt-player[data-i="3"]{background:var(--D);box-shadow:0 4px 16px rgba(16,185,129,.3)}
-.opt-player .opt-ltr{font-size:22px;font-weight:900;opacity:.85}
-.opt-player.picked{transform:scale(.97);filter:brightness(.8)}
-.opt-player.correct-ans{animation:correctFlash .6s ease;border-color:#fff}
-.opt-player.wrong-ans{opacity:.35}
-@keyframes correctFlash{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-.opt-player:disabled,.opt-player[disabled]{cursor:default;pointer-events:none}
+/* ── LEFT — question area ── */
+.q-area{display:flex;flex-direction:column;padding:20px 24px;overflow-y:auto}
 
-/* answered state */
-.answered-msg{text-align:center;padding:24px;
-  display:flex;flex-direction:column;align-items:center;gap:12px}
-.answered-icon{font-size:56px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+/* state screens */
+.state-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center}
+.big-icon{font-size:72px;animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
-.answered-text{font-size:18px;font-weight:700}
-.answered-pts{font-size:28px;font-weight:900;color:var(--gold)}
-
-/* score bar */
-.score-bar{display:flex;align-items:center;justify-content:space-between;
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:14px;padding:12px 16px;margin-bottom:14px}
-.score-bar .name{font-weight:700;font-size:15px}
-.score-bar .pts{font-size:20px;font-weight:900;color:var(--gold)}
-
-/* final */
-.final-screen{text-align:center;padding:20px}
-.my-rank{font-size:72px;animation:pop .6s cubic-bezier(.34,1.56,.64,1)}
-.my-rank-label{font-size:22px;font-weight:900;margin-bottom:6px;
+.state-title{font-size:32px;font-weight:900;color:var(--gold)}
+.state-sub{color:var(--muted);font-size:16px;max-width:500px;line-height:1.6}
+#qr-wrap{background:white;border-radius:16px;padding:16px;display:inline-block}
+.join-url{font-size:13px;color:var(--muted);word-break:break-all;max-width:400px}
+.room-code-big{font-size:56px;font-weight:900;letter-spacing:8px;
   background:linear-gradient(135deg,var(--gold),var(--gold3));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.my-final-score{font-size:40px;font-weight:900;color:var(--gold);margin-bottom:8px}
-.my-final-sub{color:var(--muted);font-size:15px}
+
+/* question card */
+.q-card{background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:24px 28px;margin-bottom:18px;
+  position:relative;overflow:hidden}
+.q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.q-meta{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.q-cat-tag{background:rgba(240,192,64,.12);color:var(--gold);
+  border:1px solid rgba(240,192,64,.3);padding:4px 14px;
+  border-radius:20px;font-size:12px;font-weight:700}
+.q-num{color:var(--muted);font-size:13px;margin-right:auto}
+.q-text{font-size:clamp(18px,2.5vw,26px);font-weight:700;line-height:1.5;color:var(--text)}
+
+/* timer ring */
+.timer-wrap{display:flex;justify-content:center;margin-bottom:16px}
+.timer-ring{position:relative;width:80px;height:80px}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring .bg{stroke:var(--border);fill:none}
+.timer-ring .fill{fill:none;stroke:var(--gold);stroke-linecap:round;
+  transition:stroke-dashoffset .9s linear,stroke .5s}
+.timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;color:var(--gold)}
+
+/* options grid */
+.opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.opt-bar{display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.04);border:1.5px solid var(--border);
+  border-radius:14px;padding:14px 16px;
+  transition:all .4s;position:relative;overflow:hidden}
+.opt-bar .fill-bg{position:absolute;right:0;top:0;bottom:0;
+  border-radius:14px;transition:width .8s ease;opacity:.18}
+.opt-bar.correct{border-color:var(--correct);background:rgba(34,197,94,.12)}
+.opt-bar.correct .fill-bg{background:var(--correct);width:100%!important}
+.opt-bar.wrong{border-color:var(--wrong);background:rgba(239,68,68,.1);opacity:.55}
+.opt-letter{width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;
+  background:rgba(240,192,64,.15);color:var(--gold);
+  border:1px solid rgba(240,192,64,.3);z-index:1}
+.opt-text{font-size:15px;font-weight:500;flex:1;z-index:1}
+.opt-count{font-size:13px;font-weight:700;color:var(--muted);z-index:1;white-space:nowrap}
+.opt-bar.correct .opt-count{color:var(--correct)}
+
+/* results reveal */
+.results-row{display:flex;gap:8px;align-items:center;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:14px 18px;margin-bottom:12px}
+.results-row .rank{font-size:20px;width:36px;text-align:center}
+.results-row .p-name{flex:1;font-size:16px;font-weight:700}
+.results-row .p-score{font-size:18px;font-weight:900;color:var(--gold)}
+.results-row .p-gain{font-size:12px;color:var(--correct);margin-right:4px}
+.results-row:first-child{border-color:var(--gold);background:rgba(240,192,64,.06)}
+.results-row:nth-child(2){border-color:rgba(192,192,192,.4)}
+.results-row:nth-child(3){border-color:rgba(205,127,50,.4)}
+
+/* ── RIGHT — leaderboard ── */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:16px 14px;overflow:hidden}
+.sidebar-title{font-size:11px;text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);margin-bottom:12px;text-align:center}
+.players-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px;
+  scrollbar-width:none}
+.player-row{display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:10px;
+  background:var(--card);border:1px solid transparent;
+  transition:all .3s;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.player-row.active{border-color:rgba(240,192,64,.3);background:rgba(240,192,64,.07)}
+.p-rank{font-size:11px;color:var(--muted);width:16px;text-align:center}
+.p-avatar{width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:900;flex-shrink:0}
+.p-info{flex:1;min-width:0}
+.p-info .name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-info .score{font-size:11px;color:var(--gold)}
+.p-answered{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--border)}
+.p-answered.yes{background:var(--correct);box-shadow:0 0 6px var(--correct)}
+.answered-count{text-align:center;padding:10px;
+  font-size:13px;color:var(--muted);border-top:1px solid var(--border);margin-top:8px}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 22px;border-radius:50px;border:none;cursor:pointer;
+  font-family:'Tajawal',sans-serif;font-size:15px;font-weight:700;transition:all .2s}
+.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#0b0f1a;
+  box-shadow:0 4px 16px rgba(240,192,64,.3)}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(240,192,64,.45)}
+.btn-outline{background:transparent;color:var(--text);border:1.5px solid var(--border)}
+.btn-outline:hover{border-color:rgba(240,192,64,.5);color:var(--gold)}
+.btn-green{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff}
+.btn-green:hover{transform:translateY(-2px)}
+.btn-red{background:rgba(239,68,68,.15);color:var(--wrong);border:1.5px solid rgba(239,68,68,.3)}
+.btns-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+
+/* phase label */
+.phase-badge{display:inline-flex;align-items:center;gap:6px;
+  padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;
+  background:rgba(240,192,64,.12);color:var(--gold);
+  border:1px solid rgba(240,192,64,.3);margin-bottom:12px}
+
+/* final podium */
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:24px 0}
+.podium-block{display:flex;flex-direction:column;align-items:center;gap:8px}
+.podium-avatar{width:56px;height:56px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900}
+.podium-name{font-size:13px;font-weight:700;text-align:center}
+.podium-score{font-size:12px;color:var(--gold)}
+.podium-stand{border-radius:8px 8px 0 0;width:80px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:900;color:rgba(255,255,255,.7)}
+.podium-block:nth-child(1) .podium-stand{height:80px;background:linear-gradient(180deg,#c0c0c0,#a0a0a0)}
+.podium-block:nth-child(2) .podium-stand{height:110px;background:linear-gradient(180deg,var(--gold),var(--gold2))}
+.podium-block:nth-child(3) .podium-stand{height:60px;background:linear-gradient(180deg,#cd7f32,#a0622a)}
+
+@media(max-width:700px){
+  .main{grid-template-columns:1fr}
+  .sidebar{display:none}
+}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="screen-join" class="join-card">
-    <div class="join-logo">🎯</div>
-    <div class="join-title">انضم للمسابقة</div>
-    <div class="join-sub">أدخل كود الغرفة واسمك</div>
-    <input class="input-field" id="inp-room" placeholder="كود الغرفة" maxlength="5" oninput="this.value=this.value.toUpperCase()">
-    <input class="input-field" id="inp-name" placeholder="اسمك" maxlength="20" onkeydown="if(event.key==='Enter')joinRoom()">
-    <button class="btn-join" onclick="joinRoom()">انضم الآن 🚀</button>
-    <div class="err" id="join-err"></div>
+  <div class="top-bar">
+    <div class="top-logo">🎯 مسابقة — شاشة المضيف</div>
+    <div class="top-stats">
+      <div class="stat-chip"><div class="val" id="stat-players">0</div><div class="lbl">لاعب</div></div>
+      <div class="stat-chip"><div class="val" id="stat-q">0/0</div><div class="lbl">سؤال</div></div>
+    </div>
+    <div class="top-controls">
+      <button class="btn btn-red" onclick="endGame()" id="btn-end" style="display:none">⏹ إنهاء</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="q-area" id="q-area">
+      <!-- dynamic content -->
+    </div>
+    <div class="sidebar">
+      <div class="sidebar-title">المتسابقون</div>
+      <div class="players-list" id="players-list"></div>
+      <div class="answered-count" id="answered-count"></div>
+    </div>
   </div>
 </div>
 
-<script type="module">
+<script>
+// Global dispatcher - catches onclick calls and routes to module functions
+const _Q = {};
+window._registerFn = function(name, fn) { _Q[name] = fn; };
+window.nextQuestion    = function() { _Q.nextQuestion    && _Q.nextQuestion();    };
+window.finishGame      = function() { _Q.finishGame      && _Q.finishGame();      };
+window.revealAnswer    = function() { _Q.revealAnswer    && _Q.revealAnswer();    };
+window.startGame       = function() { _Q.startGame       && _Q.startGame();       };
+window.endGame         = function() { _Q.endGame         && _Q.endGame();         };
+window.copyLink        = function(u) { _Q.copyLink       && _Q.copyLink(u);       };
+window.showLeaderboardScreen = function() { _Q.showLeaderboardScreen && _Q.showLeaderboardScreen(); };
+</script>
+<script type="module" id="main-module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, update, off }
+import { getDatabase, ref, set, get, push, onValue, update, remove, off }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -159,289 +230,421 @@ const firebaseConfig = {
   appId: "1:357920865302:web:b2fc24cb3b89920da24937"
 };
 
-const fApp = initializeApp(firebaseConfig);
-const db = getDatabase(fApp);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-const AVATARS = ['🦁','🐯','🦊','🐼','🦅','🦋','🐉','🦄','🐺','🦈','🎯','🔥'];
-const COLORS  = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6','#ef4444','#06b6d4','#f97316'];
+/* ════════════════════════════════════
+   QUESTIONS
+════════════════════════════════════ */
+const ALL_Q = [
+  {c:"⚽ كرة القدم",q:"كم مرة فاز البرازيل بكأس العالم؟",o:["ثلاث","أربع","خمس","ست"],a:2},
+  {c:"⚽ كرة القدم",q:"من هو الهداف التاريخي لكأس العالم؟",o:["رونالدو","كلوزه","مولر","فونتين"],a:1},
+  {c:"⚽ كرة القدم",q:"في أي دولة أُقيم كأس العالم 2022؟",o:["الإمارات","السعودية","قطر","البحرين"],a:2},
+  {c:"⚽ كرة القدم",q:"من فاز بأكثر جوائز الكرة الذهبية حتى 2023؟",o:["رونالدو","ميسي","زيدان","رونالدينيو"],a:1},
+  {c:"⚽ كرة القدم",q:"أي نادٍ يملك أكثر ألقاب دوري الأبطال؟",o:["برشلونة","ميلان","ريال مدريد","بايرن"],a:2},
+  {c:"⚽ كرة القدم",q:"من سجّل هدف يد الرب 1986؟",o:["بيليه","مارادونا","بيكهام","رونالدو"],a:1},
+  {c:"⚽ كرة القدم",q:"أي دولة فازت بكأس العالم 2018؟",o:["ألمانيا","البرازيل","فرنسا","بلجيكا"],a:2},
+  {c:"⚽ كرة القدم",q:"ما دولة منبت هالاند؟",o:["السويد","الدنمارك","النرويج","هولندا"],a:2},
+  {c:"⚽ كرة القدم",q:"كم مرة فازت ألمانيا بكأس العالم؟",o:["ثلاث","أربع","خمس","مرتان"],a:1},
+  {c:"⚽ كرة القدم",q:"من هو أكثر هداف في تاريخ الهلال السعودي؟",o:["محمد نور","ماجد عبدالله","ياسر القحطاني","صالح خميس"],a:2},
+  {c:"⚽ كرة القدم",q:"كم مرة توّج المنتخب السعودي بكأس الخليج؟",o:["3","5","7","4"],a:2},
+  {c:"⚽ كرة القدم",q:"في أي عام تأسس نادي الهلال السعودي؟",o:["1954","1957","1947","1962"],a:1},
+  {c:"🧠 ثقافة عامة",q:"ما أكبر كوكب في المجموعة الشمسية؟",o:["زحل","المشتري","نبتون","أورانوس"],a:1},
+  {c:"🧠 ثقافة عامة",q:"ما أطول نهر في العالم؟",o:["الأمازون","النيل","المسيسيبي","الكونغو"],a:1},
+  {c:"🧠 ثقافة عامة",q:"ما أكبر دولة في العالم مساحةً؟",o:["الصين","كندا","أمريكا","روسيا"],a:3},
+  {c:"🧠 ثقافة عامة",q:"من مخترع الهاتف؟",o:["إديسون","غراهام بيل","تيسلا","ماركوني"],a:1},
+  {c:"🧠 ثقافة عامة",q:"ما أسرع حيوان بري؟",o:["الأسد","النمر","الفهد","الحصان"],a:2},
+  {c:"🧠 ثقافة عامة",q:"كم عدد العناصر في الجدول الدوري؟",o:["92","100","118","110"],a:2},
+  {c:"🧠 ثقافة عامة",q:"ما مادة الماس كيميائياً؟",o:["السيليكون","الكربون","الأوكسجين","الألومنيوم"],a:1},
+  {c:"🧠 ثقافة عامة",q:"من مخترع الطائرة؟",o:["تيسلا","الأخوان رايت","هنري فورد","إديسون"],a:1},
+  {c:"🧠 ثقافة عامة",q:"ما أعمق محيط في العالم؟",o:["الأطلسي","الهندي","الهادئ","المتجمد"],a:2},
+  {c:"🧠 ثقافة عامة",q:"من اكتشف قانون الجاذبية؟",o:["أينشتاين","نيوتن","داروين","جاليليو"],a:1},
+  {c:"🧠 ثقافة عامة",q:"ما أصغر دولة في العالم؟",o:["موناكو","سان مارينو","الفاتيكان","ليختنشتاين"],a:2},
+  {c:"🧠 ثقافة عامة",q:"كم يوماً في السنة الكبيسة؟",o:["364","365","366","367"],a:2},
+  {c:"🎮 ألعاب",q:"ما اسم شركة تطوير GTA؟",o:["EA","Rockstar","Ubisoft","Activision"],a:1},
+  {c:"🎮 ألعاب",q:"في أي مدينة تدور أحداث GTA V؟",o:["Vice City","Liberty City","Los Santos","San Fierro"],a:2},
+  {c:"🎮 ألعاب",q:"في أي عام صدر GTA V؟",o:["2011","2012","2013","2014"],a:2},
+  {c:"🎮 ألعاب",q:"ما بطل Red Dead Redemption 2؟",o:["John Marston","Arthur Morgan","Dutch","Bill"],a:1},
+  {c:"🎮 ألعاب",q:"ما لعبة EA الأكثر مبيعاً؟",o:["Battlefield","Apex Legends","FIFA/EA FC","The Sims"],a:2},
+  {c:"🎮 ألعاب",q:"من طوّر Fortnite؟",o:["Activision","Epic Games","Valve","Ubisoft"],a:1},
+  {c:"🎮 ألعاب",q:"ما بطل God of War؟",o:["Thor","Kratos","Zeus","Odin"],a:1},
+  {c:"🎮 ألعاب",q:"في أي عام صدر أول PlayStation؟",o:["1992","1994","1996","1998"],a:1},
+  {c:"☪️ تاريخ إسلامي",q:"في أي عام هاجر النبي ﷺ إلى المدينة؟",o:["610م","622م","632م","615م"],a:1},
+  {c:"☪️ تاريخ إسلامي",q:"ما اسم أول خليفة في الإسلام؟",o:["عمر","علي","أبو بكر","عثمان"],a:2},
+  {c:"☪️ تاريخ إسلامي",q:"من لُقّب بسيف الله المسلول؟",o:["علي بن أبي طالب","خالد بن الوليد","عمرو بن العاص","سعد بن أبي وقاص"],a:1},
+  {c:"☪️ تاريخ إسلامي",q:"كم عدد الخلفاء الراشدين؟",o:["2","3","4","5"],a:2},
+  {c:"☪️ تاريخ إسلامي",q:"ما عاصمة الخلافة العباسية؟",o:["دمشق","القدس","بغداد","القاهرة"],a:2},
+  {c:"☪️ تاريخ إسلامي",q:"من أول من أذّن في الإسلام؟",o:["سلمان","عمر","بلال","أبو هريرة"],a:2},
+  {c:"🌍 جغرافيا",q:"ما أعلى جبل في العالم؟",o:["كيليمانجارو","مون بلان","إيفرست","ماكينلي"],a:2},
+  {c:"🌍 جغرافيا",q:"ما أطول سلسلة جبال في العالم؟",o:["الهيمالايا","الأنديز","روكي","الألب"],a:1},
+  {c:"🌍 جغرافيا",q:"أي بلد يمتلك أطول ساحل بحري؟",o:["روسيا","أستراليا","كندا","أمريكا"],a:2},
+  {c:"🌍 جغرافيا",q:"ما أعمق نقطة في محيطات الأرض؟",o:["الهاوية الماريانية","خندق بورتوريكو","خندق تونغا","خندق جاوة"],a:0},
+  {c:"🌍 جغرافيا",q:"ما أكبر صحراء حارة في العالم؟",o:["صحراء العرب","الصحراء الكبرى","أستراليا","جوبي"],a:1},
+  {c:"🌍 جغرافيا",q:"أي دولة تمتلك أكبر احتياطي نفطي مؤكد؟",o:["السعودية","روسيا","كندا","فنزويلا"],a:3},
+];
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+/* ════════════════════════════════════
+   STATE
+════════════════════════════════════ */
+const TIMER_SECS = 20;
+const POINTS_BASE = 1000;
+const AVATARS = ['🦁','🐯','🦊','🐼','🦅','🦋','🐉','🦄','🐺','🦈','🦁','🐸'];
+const COLORS = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6','#ef4444','#06b6d4','#f97316'];
 
 let roomCode = '';
-let playerId = '';
-let playerName = '';
-let playerAvatar = '';
-let playerColor = '';
-let myScore = 0;
-let currentQIdx = -1;
-let hasAnswered = false;
-let myPickedAnswer = -1;
+let gameQuestions = [];
+let currentQ = -1;
 let timerInterval = null;
-let qStartedAt = 0;
-let qTimeLimit = 20;
+let timerLeft = 0;
+let phase = 'lobby'; // lobby | question | reveal | leaderboard | final
+let playersCache = {};
+let answersCache = {};
+let unsubFns = [];
 
-window.joinRoom = joinRoom;
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+// All global functions defined first, then init
+_registerFn('copyLink', function(url) {
+  navigator.clipboard.writeText(url).then(() => alert('تم نسخ الرابط!'));
+});
 
-// Auto-fill room code from URL
-const urlRoom = new URLSearchParams(location.search).get('room');
-if (urlRoom) document.getElementById('inp-room').value = urlRoom.toUpperCase();
+_registerFn('endGame', async function() {
+  if (!confirm('هل تريد إنهاء المسابقة؟')) return;
+  clearInterval(timerInterval);
+  await update(ref(db, `rooms/${roomCode}`), { phase:'ended' });
+  location.reload();
+});
 
-async function joinRoom() {
-  const roomInp = document.getElementById('inp-room').value.trim().toUpperCase();
-  const nameInp = document.getElementById('inp-name').value.trim();
-  const errEl = document.getElementById('join-err');
-  errEl.textContent = '';
+_registerFn('startGame', async function() {
+  currentQ = 0;
+  document.getElementById('btn-end').style.display = 'flex';
+  document.getElementById('stat-q').textContent = `1/${gameQuestions.length}`;
+  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0 });
+  await pushQuestion(0);
+});
 
-  if (!roomInp || roomInp.length < 4) { errEl.textContent = 'أدخل كود الغرفة'; return; }
-  if (!nameInp) { errEl.textContent = 'أدخل اسمك'; return; }
+_registerFn('revealAnswer', async function() {
+  clearInterval(timerInterval);
+  const idx = currentQ;
+  const q = gameQuestions[idx];
+  phase = 'reveal';
+  const answers = answersCache;
+  const updates = {};
+  const counts = [0,0,0,0];
+  Object.values(answers).forEach(a => { if(a.answer !== undefined) counts[a.answer]++; });
+  let correctPlayers = [];
+  Object.entries(answers).forEach(([pid, data]) => {
+    if (data.answer === q.a) {
+      const speed = Math.max(0, TIMER_SECS - (data.timeTaken||TIMER_SECS));
+      const pts = Math.round(POINTS_BASE * (0.5 + 0.5*(speed/TIMER_SECS)));
+      updates[`rooms/${roomCode}/players/${pid}/score`] = (playersCache[pid]?.score||0) + pts;
+      correctPlayers.push(pid);
+    }
+  });
+  if (Object.keys(updates).length > 0) await update(ref(db), updates);
+  await update(ref(db, `rooms/${roomCode}`), { phase:'reveal' });
+  const letters = ['أ','ب','ج','د'];
+  const total = counts.reduce((a,b)=>a+b,0);
+  document.getElementById('q-area').innerHTML = `
+    <div class="phase-badge">✅ الإجابة الصحيحة</div>
+    <div class="q-card">
+      <div class="q-meta"><span class="q-cat-tag">${q.c}</span></div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="opts-grid">
+      ${q.o.map((opt,i)=>`
+        <div class="opt-bar ${i===q.a?'correct':'wrong'}">
+          <div class="fill-bg" style="width:${total>0?Math.round(counts[i]/total*100):0}%"></div>
+          <div class="opt-letter">${letters[i]}</div>
+          <div class="opt-text">${opt}</div>
+          <div class="opt-count">${counts[i]} ${i===q.a?'✓':''}</div>
+        </div>`).join('')}
+    </div>
+    <div style="text-align:center;padding:12px;color:var(--muted);font-size:14px">
+      ${correctPlayers.length} من ${Object.keys(playersCache).length} أجابوا صح
+    </div>
+    <div class="btns-row">
+      <div style="color:var(--muted);font-size:13px">الانتقال التلقائي خلال <span id="auto-count">4</span> ثانية…</div>
+    </div>
+  `;
 
-  // verify room exists
-  const roomSnap = await get(ref(db, `rooms/${roomInp}`));
-  if (!roomSnap.exists()) { errEl.textContent = 'الغرفة غير موجودة'; return; }
-  const roomData = roomSnap.val();
-  if (roomData.phase !== 'lobby') { errEl.textContent = 'المسابقة بدأت بالفعل'; return; }
+  let autoSec = 4;
+  const autoInt = setInterval(() => {
+    autoSec--;
+    const el = document.getElementById('auto-count');
+    if (el) el.textContent = autoSec;
+    if (autoSec <= 0) {
+      clearInterval(autoInt);
+      if (currentQ < gameQuestions.length - 1) window.nextQuestion();
+      else window.finishGame();
+    }
+  }, 1000);
+});
 
-  roomCode = roomInp;
-  playerName = nameInp;
-  playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
-  playerAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
-  playerColor = COLORS[Math.floor(Math.random() * COLORS.length)];
-  myScore = 0;
 
-  await set(ref(db, `rooms/${roomCode}/players/${playerId}`), {
-    name: playerName, avatar: playerAvatar, color: playerColor, score: 0, joinedAt: Date.now()
+
+_registerFn('finishGame', async function() {
+  clearInterval(timerInterval);
+  await update(ref(db, `rooms/${roomCode}`), { phase:'final' });
+  phase = 'final';
+  const players = Object.entries(playersCache)
+    .map(([id,p])=>({...p,id}))
+    .sort((a,b)=>(b.score||0)-(a.score||0));
+  const medals = ['🥈','🥇','🥉'];
+  const top3 = [players[1],players[0],players[2]].filter(Boolean);
+  document.getElementById('q-area').innerHTML = `
+    <div class="state-screen">
+      <div class="big-icon">🏆</div>
+      <div class="state-title">النتائج النهائية!</div>
+      <div class="podium">
+        ${top3.map((p,i)=>`
+          <div class="podium-block">
+            <div class="p-avatar podium-avatar" style="background:${p?.color||'#555'}">${p?.avatar||'👤'}</div>
+            <div class="podium-name">${p?.name||'—'}</div>
+            <div class="podium-score">${p?.score||0} نقطة</div>
+            <div class="podium-stand">${medals[i]}</div>
+          </div>`).join('')}
+      </div>
+      <div style="width:100%;max-width:500px">
+        ${players.slice(0,10).map((p,i)=>`
+          <div class="results-row">
+            <div class="rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+            <div class="p-avatar" style="background:${p.color||'#555'};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">${p.avatar||'👤'}</div>
+            <div class="p-name" style="flex:1;font-weight:700;padding:0 8px">${p.name}</div>
+            <div class="p-score">${p.score||0}</div>
+          </div>`).join('')}
+      </div>
+      <div class="btns-row">
+        <button class="btn btn-gold" onclick="location.reload()">🔄 جلسة جديدة</button>
+      </div>
+    </div>
+  `;
+});
+
+init();
+
+async function init() {
+  roomCode = Math.random().toString(36).substring(2,7).toUpperCase();
+  gameQuestions = shuffle(ALL_Q).slice(0, 20);
+
+  await set(ref(db, `rooms/${roomCode}`), {
+    phase: 'lobby',
+    currentQ: -1,
+    createdAt: Date.now(),
   });
 
   listenRoom();
-  showWaiting();
+  renderLobby();
 }
 
-function showWaiting() {
-  document.getElementById('app').innerHTML = `
-    <div class="waiting-screen">
-      <div class="waiting-avatar" style="background:${playerColor}">${playerAvatar}</div>
-      <div class="waiting-name">${playerName}</div>
-      <div style="color:var(--muted);font-size:14px;margin-bottom:20px">انتظر بدء المسابقة…</div>
-      <div class="pulse-ring"><span class="hourglass">⏳</span></div>
-      <div style="margin-top:20px;color:var(--muted);font-size:13px">غرفة: <strong style="color:var(--gold)">${roomCode}</strong></div>
-    </div>
-  `;
-}
-
+/* ════════════════════════════════════
+   LISTENERS
+════════════════════════════════════ */
 function listenRoom() {
-  onValue(ref(db, `rooms/${roomCode}`), snap => {
-    if (!snap.exists()) return;
-    const data = snap.val();
-    const q = data.currentQ;
+  // players
+  const pRef = ref(db, `rooms/${roomCode}/players`);
+  onValue(pRef, snap => {
+    playersCache = snap.val() || {};
+    document.getElementById('stat-players').textContent = Object.keys(playersCache).length;
+    renderPlayersSidebar();
+    if (phase === 'lobby') renderLobby();
+    if (phase === 'question') renderAnsweredCount();
+  });
+}
 
-    if (data.phase === 'question') {
-      if (q !== undefined && q !== currentQIdx) {
-        currentQIdx = q;
-        hasAnswered = false;
-        myPickedAnswer = -1;
-        loadQuestion(q);
+function listenAnswers(qIdx) {
+  const aRef = ref(db, `rooms/${roomCode}/answers/${qIdx}`);
+  onValue(aRef, snap => {
+    answersCache = snap.val() || {};
+    renderAnsweredCount();
+    // Auto-reveal when ALL players have answered
+    if (phase === 'question') {
+      const totalPlayers = Object.keys(playersCache).length;
+      const answeredCount = Object.keys(answersCache).length;
+      if (totalPlayers > 0 && answeredCount >= totalPlayers) {
+        // small delay so last answer registers visually
+        setTimeout(() => {
+          if (phase === 'question') window.revealAnswer();
+        }, 800);
       }
-    } else if (data.phase === 'reveal') {
-      showRevealOnPlayer();
-    } else if (data.phase === 'final') {
-      showFinal();
-    } else if (data.phase === 'ended') {
-      document.getElementById('app').innerHTML = `
-        <div style="text-align:center;padding:40px;color:#8a8fa8">
-          <div style="font-size:48px;margin-bottom:16px">🏁</div>
-          <div style="font-size:20px;font-weight:700;color:#f0ede4">انتهت المسابقة</div>
-        </div>`;
     }
   });
-
-  // listen to my score updates
-  onValue(ref(db, `rooms/${roomCode}/players/${playerId}/score`), snap => {
-    if (snap.exists()) myScore = snap.val() || 0;
-  });
 }
 
-async function showRevealOnPlayer() {
-  clearInterval(timerInterval);
-  // get correct answer from firebase
-  const snap = await get(ref(db, `rooms/${roomCode}/currentQuestion`));
-  if (!snap.exists()) return;
-  const correctAnswer = snap.val().a;
-  const opts = Array.isArray(snap.val().options) ? snap.val().options : Object.values(snap.val().options);
-  const letters = ['أ','ب','ج','د'];
-
-  const isCorrect = hasAnswered && myPickedAnswer === correctAnswer;
-  const didAnswer = hasAnswered && myPickedAnswer >= 0;
-
-  // award points display
-  const ptsSnap = await get(ref(db, `rooms/${roomCode}/players/${playerId}/score`));
-  myScore = ptsSnap.exists() ? ptsSnap.val() : myScore;
-
-  document.getElementById('app').innerHTML = `
-    <div class="q-screen">
-      <div class="score-bar">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px;border-radius:50%;background:${playerColor};display:flex;align-items:center;justify-content:center;font-size:14px">${playerAvatar}</div>
-          <div class="name">${playerName}</div>
-        </div>
-        <div class="pts">${myScore} نقطة</div>
+/* ════════════════════════════════════
+   LOBBY
+════════════════════════════════════ */
+function renderLobby() {
+  phase = 'lobby';
+  const base = location.href.replace(/musabaga_host\.html.*$/, '');
+  const playerLink = `${base}musabaga_player.html?room=${roomCode}`;
+  const count = Object.keys(playersCache).length;
+  document.getElementById('q-area').innerHTML = `
+    <div class="state-screen">
+      <div class="phase-badge">⏳ انتظار اللاعبين</div>
+      <div class="room-code-big">${roomCode}</div>
+      <div id="qr-wrap"><img id="qrcode-img" src="" alt="QR" style="width:130px;height:130px;border-radius:8px"></div>
+      <div class="join-url">${playerLink}</div>
+      <button class="btn btn-outline" onclick="copyLink('${playerLink}')">📋 نسخ الرابط</button>
+      <div style="color:var(--muted);font-size:15px;margin-top:8px">
+        ${count} لاعب انضم — في انتظار المزيد
       </div>
-      <div style="text-align:center;padding:16px 0 8px">
-        <div style="font-size:52px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)">
-          ${!didAnswer ? '⏰' : isCorrect ? '🎉' : '❌'}
-        </div>
-        <div style="font-size:17px;font-weight:700;margin-top:8px;color:${!didAnswer?'#8a8fa8':isCorrect?'#22c55e':'#ef4444'}">
-          ${!didAnswer ? 'انتهى الوقت!' : isCorrect ? 'إجابة صحيحة! +نقاط 🎯' : 'إجابة خاطئة'}
-        </div>
-      </div>
-      <div class="opts-player" style="pointer-events:none">
-        ${opts.map((opt,i) => {
-          let cls = 'opt-player';
-          let style = '';
-          if (i === correctAnswer) {
-            style = 'background:#16a34a;border:2px solid #22c55e;';
-          } else if (i === myPickedAnswer && i !== correctAnswer) {
-            style = 'background:#7f1d1d;border:2px solid #ef4444;opacity:.7;';
-          } else {
-            style = 'opacity:.35;';
-          }
-          return `<button class="${cls}" data-i="${i}" disabled style="${style}">
-            <span class="opt-ltr">${letters[i]}</span>
-            <span>${opt}</span>
-            ${i === correctAnswer ? '<span style="font-size:18px">✓</span>' : ''}
-          </button>`;
-        }).join('')}
-      </div>
-      <div style="text-align:center;color:#8a8fa8;font-size:13px;margin-top:12px">انتظر السؤال التالي…</div>
-    </div>
-  `;
-}
-
-async function loadQuestion(idx) {
-  // retry up to 5 times with 300ms delay to handle timing
-  let snap = null;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    snap = await get(ref(db, `rooms/${roomCode}/currentQuestion`));
-    if (snap.exists() && snap.val().idx === idx) break;
-    await new Promise(r => setTimeout(r, 300));
-  }
-  if (!snap || !snap.exists()) return;
-  const q = snap.val();
-  qStartedAt = q.startedAt;
-  qTimeLimit = q.timeLimit || 20;
-  renderQuestion(q, idx);
-}
-
-function renderQuestion(q, idx) {
-  const letters = ['أ','ب','ج','د'];
-  const opts = Array.isArray(q.options) ? q.options : Object.values(q.options);
-  document.getElementById('app').innerHTML = `
-    <div class="q-screen">
-      <div class="score-bar">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px;border-radius:50%;background:${playerColor};display:flex;align-items:center;justify-content:center;font-size:14px">${playerAvatar}</div>
-          <div class="name">${playerName}</div>
-        </div>
-        <div class="pts">${myScore} نقطة</div>
-      </div>
-      <div class="q-header">
-        <span class="q-cat">${q.cat||''}</span>
-        <span style="color:var(--muted);font-size:13px">س ${idx+1}</span>
-      </div>
-      <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar"></div></div>
-      <div class="q-text-card">${q.text}</div>
-      <div class="opts-player" id="opts-player">
-        ${opts.map((opt,i)=>`
-          <button class="opt-player" data-i="${i}" onclick="pickAnswer(${i})">
-            <span class="opt-ltr">${letters[i]}</span>
-            <span>${opt}</span>
-          </button>`).join('')}
+      <div class="btns-row">
+        <button class="btn btn-gold" onclick="startGame()" ${count<1?'disabled style="opacity:.5"':''}>
+          🚀 ابدأ المسابقة
+        </button>
       </div>
     </div>
   `;
-  startPlayerTimer();
-}
-
-function startPlayerTimer() {
-  clearInterval(timerInterval);
-  const bar = document.getElementById('timer-bar');
-  timerInterval = setInterval(() => {
-    const elapsed = (Date.now() - qStartedAt) / 1000;
-    const pct = Math.max(0, 1 - elapsed / qTimeLimit);
-    if (bar) {
-      bar.style.width = (pct * 100) + '%';
-      if (pct < 0.3) bar.classList.add('urgent');
-    }
-    if (pct <= 0) {
-      clearInterval(timerInterval);
-      if (!hasAnswered) disableOptions();
+  // generate QR using Google Charts API
+  setTimeout(() => {
+    const img = document.getElementById('qrcode-img');
+    if (img) {
+      const encoded = encodeURIComponent(playerLink);
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encoded}&bgcolor=ffffff&color=000000`;
     }
   }, 100);
 }
 
-window.pickAnswer = async function(i) {
-  if (hasAnswered) return;
-  hasAnswered = true;
-  myPickedAnswer = i;
-  clearInterval(timerInterval);
-  const timeTaken = (Date.now() - qStartedAt) / 1000;
 
-  // visual feedback immediately
-  document.querySelectorAll('.opt-player').forEach(b => {
-    b.setAttribute('disabled','');
-    if (parseInt(b.dataset.i) === i) b.classList.add('picked');
+
+/* ════════════════════════════════════
+   START GAME
+════════════════════════════════════ */
+
+
+async function pushQuestion(idx) {
+  const q = gameQuestions[idx];
+  await set(ref(db, `rooms/${roomCode}/currentQuestion`), {
+    idx, cat:q.c, text:q.q, options:q.o, correctAnswer:q.a, timeLimit:TIMER_SECS,
+    startedAt: Date.now()
   });
+  await remove(ref(db, `rooms/${roomCode}/answers/${idx}`));
+  phase = 'question';
+  answersCache = {};
+  listenAnswers(idx);
+  renderQuestion(idx);
+}
 
-  await set(ref(db, `rooms/${roomCode}/answers/${currentQIdx}/${playerId}`), {
-    answer: i, timeTaken, answeredAt: Date.now()
-  });
-
-  // show waiting state
-  document.getElementById('app').innerHTML = `
-    <div class="answered-msg">
-      <div class="answered-icon" style="font-size:48px">⏳</div>
-      <div class="answered-text">اخترت ${['أ','ب','ج','د'][i]} — انتظر النتيجة…</div>
-      <div class="score-bar" style="width:280px;margin-top:16px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px;border-radius:50%;background:${playerColor};display:flex;align-items:center;justify-content:center">${playerAvatar}</div>
-          <div>${playerName}</div>
-        </div>
-        <div class="pts">${myScore}</div>
+/* ════════════════════════════════════
+   QUESTION RENDER
+════════════════════════════════════ */
+function renderQuestion(idx) {
+  const q = gameQuestions[idx];
+  const letters = ['أ','ب','ج','د'];
+  document.getElementById('stat-q').textContent = `${idx+1}/${gameQuestions.length}`;
+  document.getElementById('q-area').innerHTML = `
+    <div class="phase-badge">🎯 سؤال ${idx+1} من ${gameQuestions.length}</div>
+    <div class="q-card">
+      <div class="q-meta">
+        <span class="q-cat-tag">${q.c}</span>
+        <span class="q-num">س ${idx+1}</span>
+      </div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer-ring">
+        <svg width="80" height="80"><circle class="bg" cx="40" cy="40" r="34" stroke-width="6"/><circle class="fill" id="timer-circle" cx="40" cy="40" r="34" stroke-width="6" stroke-dasharray="${2*Math.PI*34}" stroke-dashoffset="0"/></svg>
+        <div class="timer-num" id="timer-num">${TIMER_SECS}</div>
       </div>
     </div>
-  `;
-};
-
-function disableOptions() {
-  document.querySelectorAll('.opt-player').forEach(b => b.setAttribute('disabled',''));
-}
-
-function showWaitingReveal() {
-  if (hasAnswered) return;
-  document.getElementById('app').innerHTML = `
-    <div class="answered-msg">
-      <div class="answered-icon">⏰</div>
-      <div class="answered-text">انتهى الوقت!</div>
+    <div class="opts-grid" id="opts-grid">
+      ${q.o.map((opt,i)=>`
+        <div class="opt-bar" id="opt-${i}">
+          <div class="fill-bg" id="fill-${i}" style="width:0%"></div>
+          <div class="opt-letter">${letters[i]}</div>
+          <div class="opt-text">${opt}</div>
+          <div class="opt-count" id="cnt-${i}">0</div>
+        </div>`).join('')}
+    </div>
+    <div class="btns-row">
+      <button class="btn btn-red" onclick="revealAnswer()">⏩ كشف الإجابة</button>
     </div>
   `;
+  startTimer(TIMER_SECS, idx);
 }
 
-async function showFinal() {
+
+
+function startTimer(secs, idx) {
+  timerLeft = secs;
   clearInterval(timerInterval);
-  const snap = await get(ref(db, `rooms/${roomCode}/players`));
-  const players = Object.entries(snap.val()||{})
+  const circumference = 2 * Math.PI * 34;
+  timerInterval = setInterval(() => {
+    timerLeft--;
+    const el = document.getElementById('timer-num');
+    const circle = document.getElementById('timer-circle');
+    if (!el) { clearInterval(timerInterval); return; }
+    el.textContent = timerLeft;
+    const pct = timerLeft / secs;
+    circle.style.strokeDashoffset = circumference * (1 - pct);
+    if (timerLeft <= 5) { circle.style.stroke = '#ef4444'; el.style.color = '#ef4444'; }
+    if (timerLeft <= 0) { clearInterval(timerInterval); revealAnswer(); }
+    // update live answer counts
+    updateLiveAnswerCounts(idx);
+  }, 1000);
+}
+
+function updateLiveAnswerCounts(idx) {
+  const answers = answersCache;
+  const counts = [0,0,0,0];
+  Object.values(answers).forEach(a => { if(a.answer !== undefined) counts[a.answer]++; });
+  counts.forEach((c,i)=>{
+    const el = document.getElementById(`cnt-${i}`);
+    if(el) el.textContent = c;
+    const total = counts.reduce((a,b)=>a+b,0);
+    const fill = document.getElementById(`fill-${i}`);
+    if(fill) fill.style.width = total>0 ? (c/total*100)+'%' : '0%';
+  });
+}
+
+
+
+
+
+
+
+
+
+
+_registerFn('nextQuestion', async function() {
+  currentQ++;
+  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ });
+  await pushQuestion(currentQ);
+});
+
+/* ════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════ */
+function renderPlayersSidebar() {
+  const list = document.getElementById('players-list');
+  if (!list) return;
+  const players = Object.entries(playersCache)
     .map(([id,p])=>({...p,id}))
     .sort((a,b)=>(b.score||0)-(a.score||0));
-  const myRank = players.findIndex(p=>p.id===playerId)+1;
-  const total = players.length;
-  const rankEmoji = myRank===1?'🥇':myRank===2?'🥈':myRank===3?'🥉':'🎖️';
-
-  document.getElementById('app').innerHTML = `
-    <div class="final-screen">
-      <div class="my-rank">${rankEmoji}</div>
-      <div class="my-rank-label">المركز ${myRank} من ${total}</div>
-      <div class="my-final-score">${myScore} نقطة</div>
-      <div class="my-final-sub">${playerName}</div>
-      <div style="margin-top:28px;color:var(--muted);font-size:14px">شكراً على المشاركة! 🎉</div>
+  list.innerHTML = players.map((p,i)=>`
+    <div class="player-row">
+      <div class="p-rank">${i+1}</div>
+      <div class="p-avatar" style="background:${p.color||'#555'};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px">${p.avatar||'👤'}</div>
+      <div class="p-info">
+        <div class="name">${p.name||'—'}</div>
+        <div class="score">${p.score||0} نقطة</div>
+      </div>
+      <div class="p-answered ${answersCache[p.id]?'yes':''}"></div>
     </div>
-  `;
+  `).join('') || '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">لا يوجد لاعبون بعد</div>';
+}
+
+function renderAnsweredCount() {
+  const el = document.getElementById('answered-count');
+  if (!el || phase !== 'question') return;
+  const total = Object.keys(playersCache).length;
+  const answered = Object.keys(answersCache).length;
+  el.textContent = `أجاب ${answered} من ${total}`;
+  renderPlayersSidebar();
 }
 </script>
 </body>
