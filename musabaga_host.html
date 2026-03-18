@@ -203,7 +203,19 @@ body::before{content:'';position:fixed;inset:0;
   </div>
 </div>
 
-<script type="module">
+<script>
+// Global dispatcher - catches onclick calls and routes to module functions
+const _Q = {};
+window._registerFn = function(name, fn) { _Q[name] = fn; };
+window.nextQuestion    = function() { _Q.nextQuestion    && _Q.nextQuestion();    };
+window.finishGame      = function() { _Q.finishGame      && _Q.finishGame();      };
+window.revealAnswer    = function() { _Q.revealAnswer    && _Q.revealAnswer();    };
+window.startGame       = function() { _Q.startGame       && _Q.startGame();       };
+window.endGame         = function() { _Q.endGame         && _Q.endGame();         };
+window.copyLink        = function(u) { _Q.copyLink       && _Q.copyLink(u);       };
+window.showLeaderboardScreen = function() { _Q.showLeaderboardScreen && _Q.showLeaderboardScreen(); };
+</script>
+<script type="module" id="main-module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, push, onValue, update, remove, off }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -295,26 +307,26 @@ let unsubFns = [];
    INIT
 ════════════════════════════════════ */
 // All global functions defined first, then init
-window.copyLink = function(url) {
+_registerFn('copyLink', function(url) {
   navigator.clipboard.writeText(url).then(() => alert('تم نسخ الرابط!'));
-};
+});
 
-window.endGame = async function() {
+_registerFn('endGame', async function() {
   if (!confirm('هل تريد إنهاء المسابقة؟')) return;
   clearInterval(timerInterval);
   await update(ref(db, `rooms/${roomCode}`), { phase:'ended' });
   location.reload();
-};
+});
 
-window.startGame = async function() {
+_registerFn('startGame', async function() {
   currentQ = 0;
   document.getElementById('btn-end').style.display = 'flex';
   document.getElementById('stat-q').textContent = `1/${gameQuestions.length}`;
   await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0 });
   await pushQuestion(0);
-};
+});
 
-window.revealAnswer = async function() {
+_registerFn('revealAnswer', async function() {
   clearInterval(timerInterval);
   const idx = currentQ;
   const q = gameQuestions[idx];
@@ -360,11 +372,11 @@ window.revealAnswer = async function() {
         : `<button class="btn btn-green" onclick="window.finishGame()">🏆 النتائج النهائية</button>`}
     </div>
   `;
-};
+});
 
 
 
-window.finishGame = async function() {
+_registerFn('finishGame', async function() {
   clearInterval(timerInterval);
   await update(ref(db, `rooms/${roomCode}`), { phase:'final' });
   phase = 'final';
@@ -400,7 +412,7 @@ window.finishGame = async function() {
       </div>
     </div>
   `;
-};
+});
 
 init();
 
@@ -574,6 +586,13 @@ function updateLiveAnswerCounts(idx) {
 
 
 
+
+
+_registerFn('nextQuestion', async function() {
+  currentQ++;
+  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ });
+  await pushQuestion(currentQ);
+});
 
 /* ════════════════════════════════════
    SIDEBAR
