@@ -674,14 +674,33 @@ function showScheduledCountdown(startAt) {
   clearInterval(scheduledTimer);
   const render = () => {
     const ms = startAt - Date.now();
-    if (ms <= 0) { clearInterval(scheduledTimer); return; }
+    if (ms <= 0) {
+      clearInterval(scheduledTimer);
+      // Time is up — show waiting for players to join
+      document.getElementById('app').innerHTML = `
+        <div class="join-card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">🌸</div>
+          <div style="font-size:20px;font-weight:900;color:#c2185b;margin-bottom:8px">حان وقت اللعبة!</div>
+          <div style="font-size:15px;color:#a06080;margin-bottom:20px;line-height:1.8">
+            في انتظار انضمام اللاعبين الآخرين…<br>
+            <span style="font-size:13px">ستبدأ اللعبة تلقائياً عند اكتمال العدد 🎁</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px">
+            <div style="width:12px;height:12px;border-radius:50%;background:#e91e8c;animation:pulseDot 1s ease-in-out infinite"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#e91e8c;animation:pulseDot 1s ease-in-out .3s infinite"></div>
+            <div style="width:12px;height:12px;border-radius:50%;background:#e91e8c;animation:pulseDot 1s ease-in-out .6s infinite"></div>
+          </div>
+          ${playerName ? `<div style="font-size:14px;font-weight:700;color:#c2185b">${playerName} 🌸</div>` : ''}
+        </div>
+      `;
+      return;
+    }
     const h = Math.floor(ms/3600000);
     const m = Math.floor((ms%3600000)/60000);
     const s = Math.floor((ms%60000)/1000);
     const timeStr = h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
     const el = document.getElementById('scheduled-countdown');
     if (el) { el.textContent = timeStr; return; }
-    // render full screen
     document.getElementById('app').innerHTML = `
       <div class="join-card" style="text-align:center">
         <div style="font-size:36px;margin-bottom:8px">🌸</div>
