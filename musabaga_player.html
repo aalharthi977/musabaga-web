@@ -278,12 +278,18 @@ function showJoinForm() {
     <div class="join-card">
       <div class="join-logo">🌸</div>
       <div class="join-title">مسابقة ليدي ماتشا للعيد</div>
-      <div class="join-sub" style="line-height:1.7;margin-bottom:16px">
-        مسابقة ترفيهية ممتعة! أجب على الأسئلة بأسرع وقت ممكن وتصدّر لوحة النتائج 🏆<br>
-        <span style="font-size:12px;opacity:.8">اللي يجيب صح وأسرع يأخذ نقاط أكثر ⚡</span>
+      <div class="join-sub" style="line-height:1.8;margin-bottom:16px;font-size:15px">
+        مسابقة ترفيهية ممتعة!<br>
+        جاوبي على الأسئلة بأسرع وقت ممكن وخذي المركز الأول وفوزي معنا بعيدية من ليدي ماتشا 🎁
       </div>
       <input class="input-field" id="inp-name" placeholder="اسمك" maxlength="20"
+        onkeydown="if(event.key==='Enter')document.getElementById('inp-phone').focus()">
+      <input class="input-field" id="inp-phone" placeholder="رقم التواصل في حال الفوز 📱" maxlength="15"
+        type="tel" style="margin-top:8px"
         onkeydown="if(event.key==='Enter')window.joinRoom()">
+      <div style="font-size:11px;color:#a06080;margin-bottom:8px;text-align:center">
+        رقم الهاتف لن يظهر للاعبين الآخرين 🔒
+      </div>
       <button class="btn-join" onclick="window.joinRoom()">انضم الآن 🌸</button>
       <div class="err" id="join-err"></div>
     </div>
@@ -307,11 +313,14 @@ function showNoGame() {
 
 window.joinRoom = async function() {
   const nameInp = document.getElementById('inp-name');
+  const phoneInp = document.getElementById('inp-phone');
   if (!nameInp) return;
   const name = nameInp.value.trim();
+  const phone = phoneInp ? phoneInp.value.trim() : '';
   const errEl = document.getElementById('join-err');
   if (errEl) errEl.textContent = '';
-  if (!name) { if(errEl) errEl.textContent = 'أدخل اسمك'; return; }
+  if (!name) { if(errEl) errEl.textContent = 'أدخلي اسمك'; return; }
+  if (!phone) { if(errEl) errEl.textContent = 'أدخلي رقم التواصل'; return; }
   if (!roomCode) { if(errEl) errEl.textContent = 'لا توجد غرفة نشطة'; return; }
 
   const roomSnap = await get(ref(db, `rooms/${roomCode}`));
@@ -322,16 +331,20 @@ window.joinRoom = async function() {
     watchActiveRoom();
     return;
   }
-  const nameInpVal = name;
 
-  playerName = nameInpVal;
+  playerName = name;
   playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
   playerAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
   playerColor = COLORS[Math.floor(Math.random() * COLORS.length)];
   myScore = 0;
 
+  // Store public info (visible to all)
   await set(ref(db, `rooms/${roomCode}/players/${playerId}`), {
     name: playerName, avatar: playerAvatar, color: playerColor, score: 0, joinedAt: Date.now()
+  });
+  // Store private info (phone — only host can read, path hidden from players)
+  await set(ref(db, `private/${roomCode}/${playerId}`), {
+    name: playerName, phone, joinedAt: Date.now()
   });
 
   listenRoom();
@@ -382,7 +395,7 @@ function showWaiting() {
         <div class="live-players-row" id="waiting-players-list"></div>
       </div>
       <div class="pulse-ring" style="margin-top:8px"><span class="hourglass">⏳</span></div>
-      <div style="margin-top:12px;color:var(--muted);font-size:13px">تبدأ اللعبة تلقائياً عند اكتمال العدد 🌸</div>
+      <div id="start-time-info" style="margin-top:12px;color:var(--muted);font-size:13px">تبدأ اللعبة تلقائياً عند اكتمال العدد 🌸</div>
     </div>
   `;
   renderWaitingPlayers();
@@ -394,7 +407,16 @@ function listenRoom() {
     const data = snap.val();
     const q = data.currentQ;
 
-    // Show countdown to players — check before phase changes
+    // Show scheduled start countdown
+    if (data.startAt && data.phase === 'lobby') {
+      const msLeft = data.startAt - Date.now();
+      if (msLeft > 0) {
+        showScheduledCountdown(data.startAt);
+        return;
+      }
+    }
+
+    // Show auto-start countdown to players — check before phase changes
     if (data.countdown !== undefined && data.countdown > 0) {
       showPlayerCountdown(data.countdown);
       return;
@@ -643,6 +665,34 @@ function showWaitingReveal() {
       <div class="answered-text">انتهى الوقت!</div>
     </div>
   `;
+}
+
+let scheduledTimer = null;
+function showScheduledCountdown(startAt) {
+  clearInterval(scheduledTimer);
+  const render = () => {
+    const ms = startAt - Date.now();
+    if (ms <= 0) { clearInterval(scheduledTimer); return; }
+    const h = Math.floor(ms/3600000);
+    const m = Math.floor((ms%3600000)/60000);
+    const s = Math.floor((ms%60000)/1000);
+    const timeStr = h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+    const el = document.getElementById('scheduled-countdown');
+    if (el) { el.textContent = timeStr; return; }
+    // render full screen
+    document.getElementById('app').innerHTML = `
+      <div class="join-card" style="text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">🌸</div>
+        <div style="font-size:18px;font-weight:900;color:#c2185b;margin-bottom:4px">مسابقة ليدي ماتشا للعيد</div>
+        <div style="font-size:13px;color:#a06080;margin-bottom:16px">تبدأ اللعبة خلال</div>
+        <div id="scheduled-countdown" style="font-size:52px;font-weight:900;color:#e91e8c;font-variant-numeric:tabular-nums">${timeStr}</div>
+        <div style="font-size:13px;color:#a06080;margin-top:8px">انتظري — سيتم تحويلك تلقائياً عند البدء 🎁</div>
+        ${playerName ? `<div style="margin-top:16px;font-size:13px;color:#c2185b;font-weight:700">${playerName} 🌸</div>` : ''}
+      </div>
+    `;
+  };
+  render();
+  scheduledTimer = setInterval(render, 1000);
 }
 
 function showPlayerCountdown(sec) {
