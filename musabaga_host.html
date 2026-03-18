@@ -866,7 +866,7 @@ function renderLobby() {
   let schedStr = '';
   if (scheduledStartAt > 0) {
     const d = new Date(scheduledStartAt);
-    schedStr = d.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit'});
+    schedStr = d.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit', timeZone:'Asia/Riyadh'});
   }
 
   document.getElementById('q-area').innerHTML = `
@@ -888,18 +888,27 @@ function renderLobby() {
             style="width:52px;padding:5px 8px;background:#fff5f8;border:1px solid #f8bbd0;border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:15px;font-weight:700;text-align:center;outline:none">
           <span style="color:var(--muted);font-size:12px">لاعب ${autoStartCount>0?'✓':''}</span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;flex:1;min-width:180px">
-          <span style="color:var(--muted);font-size:12px;white-space:nowrap">⏰ وقت البدء</span>
-          <input type="time" id="schedule-input"
-            value="${scheduledStartAt>0 ? (()=>{const d=new Date(scheduledStartAt);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')})() : ''}"
-            oninput="updateSchedule(this.value)"
-            style="padding:5px 8px;background:#fff5f8;border:1px solid #f8bbd0;border-radius:8px;color:var(--text);font-size:14px;outline:none;flex:1">
-          ${scheduledStartAt>0?`<span style="color:#e91e8c;font-size:11px;font-weight:700">${schedStr} ✓</span>`:''}
+        <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;flex:1;min-width:220px">
+          <span style="color:var(--muted);font-size:12px;white-space:nowrap">⏰ وقت البدء (KSA)</span>
+          <select id="schedule-hour" onchange="updateScheduleFromPicker()"
+            style="padding:6px 8px;background:#fff5f8;border:1px solid #f8bbd0;border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;outline:none;cursor:pointer">
+            <option value="">--</option>
+            ${Array.from({length:24},(_,i)=>`<option value="${i}" ${scheduledStartAt>0&&new Date(scheduledStartAt).toLocaleString('en-US',{timeZone:'Asia/Riyadh',hour:'numeric',hour12:false})==i?'selected':''}>
+              ${String(i).padStart(2,'0')} ${i<12?'ص':'م'}
+            </option>`).join('')}
+          </select>
+          <span style="color:var(--muted);font-weight:700">:</span>
+          <select id="schedule-min" onchange="updateScheduleFromPicker()"
+            style="padding:6px 8px;background:#fff5f8;border:1px solid #f8bbd0;border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;outline:none;cursor:pointer">
+            ${['00','05','10','15','20','25','30','35','40','45','50','55'].map(m=>`<option value="${m}" ${scheduledStartAt>0&&String(new Date(scheduledStartAt).toLocaleString('en-US',{timeZone:'Asia/Riyadh',minute:'numeric'})).padStart(2,'0')===m?'selected':''}>${m}</option>`).join('')}
+          </select>
+          ${scheduledStartAt>0?`<span style="color:#e91e8c;font-size:12px;font-weight:700">${schedStr} ✓</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px">
           <span style="color:var(--muted);font-size:12px;white-space:nowrap">تكرار بعد ساعة</span>
-          <div onclick="toggleLoop(!autoLoop)" style="width:36px;height:20px;border-radius:10px;background:${autoLoop?'#e91e8c':'#ddd'};cursor:pointer;position:relative;transition:.3s;flex-shrink:0">
-            <div style="position:absolute;top:2px;${autoLoop?'left:18px':'left:2px'};width:16px;height:16px;border-radius:50%;background:#fff;transition:.3s"></div>
+          <div id="loop-toggle-btn" onclick="toggleLoop(!autoLoop)"
+            style="width:44px;height:24px;border-radius:12px;background:${autoLoop?'#e91e8c':'#ccc'};cursor:pointer;position:relative;transition:background .3s;flex-shrink:0;border:none">
+            <div style="position:absolute;top:3px;left:${autoLoop?'22':'3'}px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
           </div>
           <span style="font-size:11px;font-weight:700;color:${autoLoop?'#e91e8c':'var(--muted)'}">
             ${autoLoop?'مفعّل':'موقوف'}
@@ -943,8 +952,28 @@ window.updateSchedule = function(val) {
   const [hh, mm] = val.split(':').map(Number);
   const now = new Date();
   const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
-  if (target <= now) target.setDate(target.getDate() + 1); // next day if past
+  if (target <= now) target.setDate(target.getDate() + 1);
   scheduledStartAt = target.getTime();
+  update(ref(db, `rooms/${roomCode}`), {startAt: scheduledStartAt});
+  startScheduleWatcher();
+  renderLobby();
+};
+
+window.updateScheduleFromPicker = function() {
+  const h = document.getElementById('schedule-hour')?.value;
+  const m = document.getElementById('schedule-min')?.value;
+  if (!h || h === '') { scheduledStartAt = 0; update(ref(db, `rooms/${roomCode}`), {startAt: 0}); renderLobby(); return; }
+  // Build KSA time: KSA = UTC+3, so subtract 3 hours to get UTC
+  const now = new Date();
+  const ksaOffset = 3 * 60; // KSA is UTC+3
+  // Create date in KSA time
+  const ksaNow = new Date(now.getTime() + ksaOffset * 60000);
+  const target = new Date(Date.UTC(ksaNow.getUTCFullYear(), ksaNow.getUTCMonth(), ksaNow.getUTCDate(), parseInt(h) - 3, parseInt(m), 0));
+  // If past, add 1 day
+  if (target.getTime() <= now.getTime()) target.setUTCDate(target.getUTCDate() + 1);
+  scheduledStartAt = target.getTime();
+  const ksaTime = new Date(scheduledStartAt + ksaOffset * 60000);
+  const ksaStr = String(ksaTime.getUTCHours()).padStart(2,'0') + ':' + String(ksaTime.getUTCMinutes()).padStart(2,'0');
   update(ref(db, `rooms/${roomCode}`), {startAt: scheduledStartAt});
   startScheduleWatcher();
   renderLobby();
