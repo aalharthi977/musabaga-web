@@ -189,14 +189,9 @@ body::before{content:'';position:fixed;inset:0;
 </head>
 <body>
 <div id="app">
-  <div id="screen-join" class="join-card">
-    <div class="join-logo">🎯</div>
-    <div class="join-title" id="join-title">انضم للمسابقة</div>
-    <div class="join-sub" id="join-sub">أدخل اسمك للمشاركة</div>
-    <div id="room-display" style="font-size:22px;font-weight:900;letter-spacing:4px;color:var(--gold);margin-bottom:12px"></div>
-    <input class="input-field" id="inp-name" placeholder="اسمك" maxlength="20" onkeydown="if(event.key==='Enter')joinRoom()">
-    <button class="btn-join" id="btn-join" onclick="joinRoom()">انضم الآن 🚀</button>
-    <div class="err" id="join-err"></div>
+  <div id="app-init" style="text-align:center;padding:40px;color:#8a8fa8">
+    <div style="font-size:36px;margin-bottom:12px">⏳</div>
+    <div style="font-size:15px">جاري الاتصال…</div>
   </div>
 </div>
 
@@ -236,48 +231,97 @@ let qTimeLimit = 10;
 let allPlayers = {};
 let currentAnswers = {};
 
-window.joinRoom = joinRoom;
 
-// Init room from URL
-const urlRoom = new URLSearchParams(location.search).get('room');
-if (urlRoom) {
-  roomCode = urlRoom.toUpperCase();
-  const dispEl = document.getElementById('room-display');
-  if (dispEl) dispEl.textContent = roomCode;
-  // Check if game is already running
-  get(ref(db, `rooms/${roomCode}`)).then(snap => {
-    if (!snap.exists()) {
-      document.getElementById('join-sub').textContent = 'الغرفة غير موجودة';
-      document.getElementById('btn-join').disabled = true;
-      return;
-    }
-    const data = snap.val();
-    if (data.phase !== 'lobby') {
-      // Game already started — show running message and wait
-      const nameVal = document.getElementById('inp-name').value.trim();
-      showGameRunning();
-      listenForNextRoom();
+// Always use activeRoom from Firebase — no URL room code needed
+initPlayer();
+
+async function initPlayer() {
+  const snap = await get(ref(db, 'activeRoom'));
+  if (!snap.exists() || !snap.val()) {
+    showNoGame();
+    watchActiveRoom();
+    return;
+  }
+  roomCode = snap.val();
+  const roomSnap = await get(ref(db, `rooms/${roomCode}`));
+  if (!roomSnap.exists()) { showNoGame(); watchActiveRoom(); return; }
+  const data = roomSnap.val();
+  if (data.phase === 'lobby') {
+    showJoinForm();
+  } else if (data.phase === 'final' || data.phase === 'ended') {
+    showNoGame();
+    watchActiveRoom();
+  } else {
+    showGameRunning();
+    watchActiveRoom();
+  }
+}
+
+function watchActiveRoom() {
+  onValue(ref(db, 'activeRoom'), async snap => {
+    if (!snap.exists() || !snap.val()) return;
+    const newRoom = snap.val();
+    if (newRoom === roomCode) return;
+    roomCode = newRoom;
+    // new room created — reload join form
+    const roomSnap = await get(ref(db, `rooms/${roomCode}`));
+    if (!roomSnap.exists()) return;
+    const data = roomSnap.val();
+    if (data.phase === 'lobby') {
+      showJoinForm();
     }
   });
 }
 
-async function joinRoom() {
-  const nameInp = document.getElementById('inp-name').value.trim();
+function showJoinForm() {
+  document.getElementById('app').innerHTML = `
+    <div class="join-card">
+      <div class="join-logo">🎯</div>
+      <div class="join-title">انضم للمسابقة</div>
+      <div class="join-sub">أدخل اسمك للمشاركة</div>
+      <input class="input-field" id="inp-name" placeholder="اسمك" maxlength="20"
+        onkeydown="if(event.key==='Enter')window.joinRoom()">
+      <button class="btn-join" onclick="window.joinRoom()">انضم الآن 🚀</button>
+      <div class="err" id="join-err"></div>
+    </div>
+  `;
+}
+
+function showNoGame() {
+  document.getElementById('app').innerHTML = `
+    <div class="join-card">
+      <div class="join-logo">🕐</div>
+      <div class="join-title">لا توجد مسابقة الآن</div>
+      <div class="join-sub">انتظر المضيف ليفتح جلسة جديدة — سيتم تحويلك تلقائياً</div>
+      <div style="margin-top:20px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pulseDot 1s ease-in-out infinite"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pulseDot 1s ease-in-out .3s infinite"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pulseDot 1s ease-in-out .6s infinite"></div>
+      </div>
+    </div>
+  `;
+}
+
+window.joinRoom = async function() {
+  const nameInp = document.getElementById('inp-name');
+  if (!nameInp) return;
+  const name = nameInp.value.trim();
   const errEl = document.getElementById('join-err');
-  errEl.textContent = '';
-  if (!nameInp) { errEl.textContent = 'أدخل اسمك'; return; }
-  if (!roomCode) { errEl.textContent = 'رابط الغرفة غير صحيح'; return; }
+  if (errEl) errEl.textContent = '';
+  if (!name) { if(errEl) errEl.textContent = 'أدخل اسمك'; return; }
+  if (!roomCode) { if(errEl) errEl.textContent = 'لا توجد غرفة نشطة'; return; }
 
   const roomSnap = await get(ref(db, `rooms/${roomCode}`));
-  if (!roomSnap.exists()) { errEl.textContent = 'الغرفة غير موجودة'; return; }
+  if (!roomSnap.exists()) { if(errEl) errEl.textContent = 'الغرفة غير موجودة'; return; }
   const roomData = roomSnap.val();
   if (roomData.phase !== 'lobby') {
     showGameRunning();
-    listenForNextRoom();
+    watchActiveRoom();
     return;
   }
+  const nameInpVal = name;
 
-  playerName = nameInp;
+  playerName = nameInpVal;
   playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
   playerAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
   playerColor = COLORS[Math.floor(Math.random() * COLORS.length)];
@@ -307,24 +351,7 @@ function showGameRunning() {
 }
 
 function listenForNextRoom() {
-  // watch current room for nextRoom signal or final phase
-  const unsub = onValue(ref(db, `rooms/${roomCode}`), snap => {
-    if (!snap.exists()) return;
-    const data = snap.val();
-    if (data.nextRoom || data.phase === 'final' || data.phase === 'ended') {
-      // get latest room from server
-      setTimeout(async () => {
-        // Find newest room — use nextRoom if set
-        if (data.nextRoom) {
-          // redirect to new room
-          const newUrl = location.href.replace(/room=[^&]+/, 'room=' + data.nextRoom);
-          location.href = newUrl;
-        } else {
-          location.reload();
-        }
-      }, 3000);
-    }
-  });
+  watchActiveRoom();
 }
 
 function showWaiting() {
@@ -372,13 +399,7 @@ function listenRoom() {
           <div style="font-size:20px;font-weight:700;color:#f0ede4">انتهت المسابقة</div>
         </div>`;
     }
-    // Redirect to new game if nextRoom signal received
-    if (data.nextRoom) {
-      setTimeout(() => {
-        const newUrl = location.href.replace(/room=[^&]+/, 'room=' + data.nextRoom);
-        location.href = newUrl;
-      }, 5000);
-    }
+    // watchActiveRoom handles new room detection
   });
 
   // listen to ALL players (for waiting room + live scoreboard)
