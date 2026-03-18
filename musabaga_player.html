@@ -229,28 +229,42 @@ function listenRoom() {
   onValue(ref(db, `rooms/${roomCode}`), snap => {
     if (!snap.exists()) return;
     const data = snap.val();
-    if (data.phase === 'question' && data.currentQ !== currentQIdx) {
-      currentQIdx = data.currentQ;
-      hasAnswered = false;
-      loadQuestion(data.currentQ);
-    }
-    if (data.phase === 'reveal' && !hasAnswered) {
-      showWaitingReveal();
-    }
-    if (data.phase === 'final') {
+    const q = data.currentQ;
+
+    if (data.phase === 'question') {
+      if (q !== undefined && q !== currentQIdx) {
+        currentQIdx = q;
+        hasAnswered = false;
+        loadQuestion(q);
+      }
+    } else if (data.phase === 'reveal') {
+      if (!hasAnswered) showWaitingReveal();
+    } else if (data.phase === 'final') {
       showFinal();
+    } else if (data.phase === 'ended') {
+      document.getElementById('app').innerHTML = `
+        <div style="text-align:center;padding:40px;color:#8a8fa8">
+          <div style="font-size:48px;margin-bottom:16px">🏁</div>
+          <div style="font-size:20px;font-weight:700;color:#f0ede4">انتهت المسابقة</div>
+        </div>`;
     }
   });
 
-  // listen to my score
+  // listen to my score updates
   onValue(ref(db, `rooms/${roomCode}/players/${playerId}/score`), snap => {
     if (snap.exists()) myScore = snap.val() || 0;
   });
 }
 
 async function loadQuestion(idx) {
-  const snap = await get(ref(db, `rooms/${roomCode}/currentQuestion`));
-  if (!snap.exists()) return;
+  // retry up to 5 times with 300ms delay to handle timing
+  let snap = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    snap = await get(ref(db, `rooms/${roomCode}/currentQuestion`));
+    if (snap.exists() && snap.val().idx === idx) break;
+    await new Promise(r => setTimeout(r, 300));
+  }
+  if (!snap || !snap.exists()) return;
   const q = snap.val();
   qStartedAt = q.startedAt;
   qTimeLimit = q.timeLimit || 20;
