@@ -479,8 +479,10 @@ function listenAnswers(qIdx) {
 ════════════════════════════════════ */
 function renderLobby() {
   phase = 'lobby';
-  const base = location.href.replace(/musabaga_host\.html.*$/, '');
-  const playerLink = `${base}musabaga_player.html?room=${roomCode}`;
+  const playerLink = location.href
+    .replace(/[?#].*$/, '')
+    .replace(/musabaga_host\.html$/i, 'musabaga_player.html')
+    + '?room=' + roomCode;
   const count = Object.keys(playersCache).length;
   document.getElementById('q-area').innerHTML = `
     <div class="state-screen">
