@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>مسابقة — شاشة المضيف</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -351,7 +351,7 @@ function renderLobby() {
     <div class="state-screen">
       <div class="phase-badge">⏳ انتظار اللاعبين</div>
       <div class="room-code-big">${roomCode}</div>
-      <div id="qr-wrap"><div id="qrcode"></div></div>
+      <div id="qr-wrap"><img id="qrcode-img" src="" alt="QR" style="width:130px;height:130px;border-radius:8px"></div>
       <div class="join-url">${playerLink}</div>
       <button class="btn btn-outline" onclick="copyLink('${playerLink}')">📋 نسخ الرابط</button>
       <div style="color:var(--muted);font-size:15px;margin-top:8px">
@@ -364,11 +364,12 @@ function renderLobby() {
       </div>
     </div>
   `;
-  // generate QR
+  // generate QR using Google Charts API
   setTimeout(() => {
-    const el = document.getElementById('qrcode');
-    if (el && !el.hasChildNodes()) {
-      new QRCode(el, {text: playerLink, width:130, height:130, colorDark:'#000', colorLight:'#fff'});
+    const img = document.getElementById('qrcode-img');
+    if (img) {
+      const encoded = encodeURIComponent(playerLink);
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encoded}&bgcolor=ffffff&color=000000`;
     }
   }, 100);
 }
