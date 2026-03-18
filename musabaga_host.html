@@ -859,6 +859,19 @@ function listenAnswers(qIdx) {
 /* ════════════════════════════════════
    LOBBY
 ════════════════════════════════════ */
+function buildHourOptions(scheduledStartAt) {
+  const curHour = scheduledStartAt > 0
+    ? parseInt(new Date(scheduledStartAt).toLocaleString('en-US',{timeZone:'Asia/Riyadh',hour:'numeric',hour12:false}))
+    : -1;
+  let opts = '';
+  for (let i = 0; i < 24; i++) {
+    const label = String(i).padStart(2,'0') + ' ' + (i < 12 ? 'ص' : 'م');
+    const sel = curHour === i ? 'selected' : '';
+    opts += '<option value="' + i + '" ' + sel + '>' + label + '</option>';
+  }
+  return opts;
+}
+
 function renderLobby() {
   phase = 'lobby';
   // Fixed player URL — no room code needed
@@ -900,9 +913,7 @@ function renderLobby() {
           <select id="schedule-hour" onchange="updateScheduleFromPicker()"
             style="padding:6px 8px;background:#fff5f8;border:1px solid #f8bbd0;border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;outline:none;cursor:pointer">
             <option value="">--</option>
-            ${Array.from({length:24},(_,i)=>`<option value="${i}" ${scheduledStartAt>0&&new Date(scheduledStartAt).toLocaleString('en-US',{timeZone:'Asia/Riyadh',hour:'numeric',hour12:false})==i?'selected':''}>
-              ${String(i).padStart(2,'0')} ${i<12?'ص':'م'}
-            </option>`).join('')}
+            ${buildHourOptions(scheduledStartAt)}
           </select>
           <span style="color:var(--muted);font-weight:700">:</span>
           <input type="number" id="schedule-min" min="0" max="59"
@@ -986,7 +997,7 @@ _registerFn('updateScheduleFromPicker', function() {
   update(ref(db, `rooms/${roomCode}`), {startAt: scheduledStartAt});
   startScheduleWatcher();
   renderLobby();
-};
+});
 
 _registerFn('toggleLoop', function(val) {
   autoLoop = val;
