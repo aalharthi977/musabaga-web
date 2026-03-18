@@ -367,11 +367,21 @@ _registerFn('revealAnswer', async function() {
       ${correctPlayers.length} من ${Object.keys(playersCache).length} أجابوا صح
     </div>
     <div class="btns-row">
-      ${currentQ < gameQuestions.length-1
-        ? `<button class="btn btn-gold" onclick="window.nextQuestion()">التالي ▶</button>`
-        : `<button class="btn btn-green" onclick="window.finishGame()">🏆 النتائج النهائية</button>`}
+      <div style="color:var(--muted);font-size:13px">الانتقال التلقائي خلال <span id="auto-count">4</span> ثانية…</div>
     </div>
   `;
+
+  let autoSec = 4;
+  const autoInt = setInterval(() => {
+    autoSec--;
+    const el = document.getElementById('auto-count');
+    if (el) el.textContent = autoSec;
+    if (autoSec <= 0) {
+      clearInterval(autoInt);
+      if (currentQ < gameQuestions.length - 1) window.nextQuestion();
+      else window.finishGame();
+    }
+  }, 1000);
 });
 
 
@@ -509,7 +519,7 @@ function renderLobby() {
 async function pushQuestion(idx) {
   const q = gameQuestions[idx];
   await set(ref(db, `rooms/${roomCode}/currentQuestion`), {
-    idx, cat:q.c, text:q.q, options:q.o, timeLimit:TIMER_SECS,
+    idx, cat:q.c, text:q.q, options:q.o, correctAnswer:q.a, timeLimit:TIMER_SECS,
     startedAt: Date.now()
   });
   await remove(ref(db, `rooms/${roomCode}/answers/${idx}`));
