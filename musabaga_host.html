@@ -722,7 +722,10 @@ _registerFn('finishGame', async function() {
     setTimeout(async () => {
       const newRoom = Math.random().toString(36).substring(2,7).toUpperCase();
       await set(ref(db, `rooms/${newRoom}`), {
-        phase: 'lobby', currentQ: -1, createdAt: Date.now(), startAt: nextStart
+        phase: 'lobby', currentQ: -1, createdAt: Date.now(),
+        startAt: nextStart,
+        autoStartCount,
+        autoLoop,
       });
       await set(ref(db, 'activeRoom'), newRoom);
       setTimeout(() => location.reload(), 500);
@@ -807,17 +810,39 @@ window.exportWinners = async function() {
 init();
 
 async function init() {
+  // After reload — try to resume existing lobby room with its settings
+  const activeSnap = await get(ref(db, 'activeRoom'));
+  const existingRoom = activeSnap.exists() ? activeSnap.val() : null;
+
+  if (existingRoom) {
+    const roomSnap = await get(ref(db, `rooms/${existingRoom}`));
+    if (roomSnap.exists()) {
+      const data = roomSnap.val();
+      if (data.phase === 'lobby') {
+        // Resume existing room — inherit all settings
+        roomCode = existingRoom;
+        if (data.autoStartCount !== undefined) autoStartCount = data.autoStartCount;
+        if (data.autoLoop !== undefined) autoLoop = data.autoLoop;
+        if (data.startAt && data.startAt > Date.now()) {
+          scheduledStartAt = data.startAt;
+          startScheduleWatcher();
+        }
+        gameQuestions = [ALL_Q[0], ...shuffle(ALL_Q.slice(1))].slice(0, 25);
+        listenRoom();
+        renderLobby();
+        return;
+      }
+    }
+  }
+
+  // No existing lobby — create fresh room
   roomCode = Math.random().toString(36).substring(2,7).toUpperCase();
   gameQuestions = [ALL_Q[0], ...shuffle(ALL_Q.slice(1))].slice(0, 25);
 
   await set(ref(db, `rooms/${roomCode}`), {
-    phase: 'lobby',
-    currentQ: -1,
-    createdAt: Date.now(),
-    autoStartCount,
-    autoLoop,
+    phase: 'lobby', currentQ: -1, createdAt: Date.now(),
+    autoStartCount, autoLoop,
   });
-  // Set as the global active room so players can find it
   await set(ref(db, 'activeRoom'), roomCode);
 
   listenRoom();
