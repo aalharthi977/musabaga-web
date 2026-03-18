@@ -173,6 +173,7 @@ let playerColor = '';
 let myScore = 0;
 let currentQIdx = -1;
 let hasAnswered = false;
+let myPickedAnswer = -1;
 let timerInterval = null;
 let qStartedAt = 0;
 let qTimeLimit = 20;
@@ -235,10 +236,11 @@ function listenRoom() {
       if (q !== undefined && q !== currentQIdx) {
         currentQIdx = q;
         hasAnswered = false;
+        myPickedAnswer = -1;
         loadQuestion(q);
       }
     } else if (data.phase === 'reveal') {
-      if (!hasAnswered) showWaitingReveal();
+      showRevealOnPlayer();
     } else if (data.phase === 'final') {
       showFinal();
     } else if (data.phase === 'ended') {
@@ -254,6 +256,62 @@ function listenRoom() {
   onValue(ref(db, `rooms/${roomCode}/players/${playerId}/score`), snap => {
     if (snap.exists()) myScore = snap.val() || 0;
   });
+}
+
+async function showRevealOnPlayer() {
+  clearInterval(timerInterval);
+  // get correct answer from firebase
+  const snap = await get(ref(db, `rooms/${roomCode}/currentQuestion`));
+  if (!snap.exists()) return;
+  const correctAnswer = snap.val().a;
+  const opts = Array.isArray(snap.val().options) ? snap.val().options : Object.values(snap.val().options);
+  const letters = ['أ','ب','ج','د'];
+
+  const isCorrect = hasAnswered && myPickedAnswer === correctAnswer;
+  const didAnswer = hasAnswered && myPickedAnswer >= 0;
+
+  // award points display
+  const ptsSnap = await get(ref(db, `rooms/${roomCode}/players/${playerId}/score`));
+  myScore = ptsSnap.exists() ? ptsSnap.val() : myScore;
+
+  document.getElementById('app').innerHTML = `
+    <div class="q-screen">
+      <div class="score-bar">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:${playerColor};display:flex;align-items:center;justify-content:center;font-size:14px">${playerAvatar}</div>
+          <div class="name">${playerName}</div>
+        </div>
+        <div class="pts">${myScore} نقطة</div>
+      </div>
+      <div style="text-align:center;padding:16px 0 8px">
+        <div style="font-size:52px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)">
+          ${!didAnswer ? '⏰' : isCorrect ? '🎉' : '❌'}
+        </div>
+        <div style="font-size:17px;font-weight:700;margin-top:8px;color:${!didAnswer?'#8a8fa8':isCorrect?'#22c55e':'#ef4444'}">
+          ${!didAnswer ? 'انتهى الوقت!' : isCorrect ? 'إجابة صحيحة! +نقاط 🎯' : 'إجابة خاطئة'}
+        </div>
+      </div>
+      <div class="opts-player" style="pointer-events:none">
+        ${opts.map((opt,i) => {
+          let cls = 'opt-player';
+          let style = '';
+          if (i === correctAnswer) {
+            style = 'background:#16a34a;border:2px solid #22c55e;';
+          } else if (i === myPickedAnswer && i !== correctAnswer) {
+            style = 'background:#7f1d1d;border:2px solid #ef4444;opacity:.7;';
+          } else {
+            style = 'opacity:.35;';
+          }
+          return `<button class="${cls}" data-i="${i}" disabled style="${style}">
+            <span class="opt-ltr">${letters[i]}</span>
+            <span>${opt}</span>
+            ${i === correctAnswer ? '<span style="font-size:18px">✓</span>' : ''}
+          </button>`;
+        }).join('')}
+      </div>
+      <div style="text-align:center;color:#8a8fa8;font-size:13px;margin-top:12px">انتظر السؤال التالي…</div>
+    </div>
+  `;
 }
 
 async function loadQuestion(idx) {
@@ -321,10 +379,11 @@ function startPlayerTimer() {
 window.pickAnswer = async function(i) {
   if (hasAnswered) return;
   hasAnswered = true;
+  myPickedAnswer = i;
   clearInterval(timerInterval);
   const timeTaken = (Date.now() - qStartedAt) / 1000;
 
-  // visual feedback
+  // visual feedback immediately
   document.querySelectorAll('.opt-player').forEach(b => {
     b.setAttribute('disabled','');
     if (parseInt(b.dataset.i) === i) b.classList.add('picked');
@@ -334,11 +393,12 @@ window.pickAnswer = async function(i) {
     answer: i, timeTaken, answeredAt: Date.now()
   });
 
+  // show waiting state
   document.getElementById('app').innerHTML = `
     <div class="answered-msg">
-      <div class="answered-icon">✅</div>
-      <div class="answered-text">تم! انتظر النتيجة…</div>
-      <div class="score-bar" style="width:280px">
+      <div class="answered-icon" style="font-size:48px">⏳</div>
+      <div class="answered-text">اخترت ${['أ','ب','ج','د'][i]} — انتظر النتيجة…</div>
+      <div class="score-bar" style="width:280px;margin-top:16px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:28px;height:28px;border-radius:50%;background:${playerColor};display:flex;align-items:center;justify-content:center">${playerAvatar}</div>
           <div>${playerName}</div>
