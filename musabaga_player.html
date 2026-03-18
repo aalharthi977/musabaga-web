@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>مسابقة — انضم</title>
+<title>ليدي ماتشا 🌸</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -26,7 +26,7 @@ body::before{content:'';position:fixed;inset:0;
   padding:20px 16px}
 
 /* ── JOIN SCREEN ── */
-.join-card{background:var(--card);border:1px solid var(--border);
+.join-card{background:#fff;border:2px solid #f8bbd0;
   border-radius:24px;padding:32px 28px;width:100%;max-width:400px;
   text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .join-logo{font-size:48px;margin-bottom:12px}
@@ -43,7 +43,7 @@ body::before{content:'';position:fixed;inset:0;
 .input-field:focus{border-color:rgba(240,192,64,.5)}
 .input-field::placeholder{color:var(--muted);font-weight:400;direction:rtl}
 .btn-join{width:100%;padding:16px;border-radius:50px;border:none;
-  background:linear-gradient(135deg,var(--gold2),var(--gold));
+  background:linear-gradient(135deg,#c2185b,#e91e8c);
   color:#0b0f1a;font-size:19px;font-weight:900;
   cursor:pointer;font-family:'Tajawal',sans-serif;
   transition:all .25s;box-shadow:0 4px 20px rgba(240,192,64,.35);margin-top:4px}
@@ -125,7 +125,7 @@ body::before{content:'';position:fixed;inset:0;
 .final-screen{text-align:center;padding:20px}
 .my-rank{font-size:72px;animation:pop .6s cubic-bezier(.34,1.56,.64,1)}
 .my-rank-label{font-size:22px;font-weight:900;margin-bottom:6px;
-  background:linear-gradient(135deg,var(--gold),var(--gold3));
+  background:linear-gradient(135deg,#c2185b,#f48fb1);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .my-final-score{font-size:40px;font-weight:900;color:var(--gold);margin-bottom:8px}
 .my-final-sub{color:var(--muted);font-size:15px}
@@ -133,7 +133,7 @@ body::before{content:'';position:fixed;inset:0;
   /* ── LIVE PLAYERS PANEL ── */
   .live-panel {
     width:100%;max-width:460px;
-    background:rgba(255,255,255,.05);
+    background:rgba(252,228,236,.5);
     border:1px solid var(--border);
     border-radius:14px;padding:12px 14px;
     margin-bottom:12px;
@@ -148,7 +148,7 @@ body::before{content:'';position:fixed;inset:0;
   .live-player-item {
     display:flex;align-items:center;gap:8px;
     padding:7px 10px;border-radius:10px;
-    background:rgba(255,255,255,.04);
+    background:rgba(255,255,255,.8);
     transition:all .3s;
   }
   .live-player-item.me {
@@ -276,12 +276,15 @@ function watchActiveRoom() {
 function showJoinForm() {
   document.getElementById('app').innerHTML = `
     <div class="join-card">
-      <div class="join-logo">🎯</div>
-      <div class="join-title">انضم للمسابقة</div>
-      <div class="join-sub">أدخل اسمك للمشاركة</div>
+      <div class="join-logo">🌸</div>
+      <div class="join-title">مسابقة ليدي ماتشا للعيد</div>
+      <div class="join-sub" style="line-height:1.7;margin-bottom:16px">
+        مسابقة ترفيهية ممتعة! أجب على الأسئلة بأسرع وقت ممكن وتصدّر لوحة النتائج 🏆<br>
+        <span style="font-size:12px;opacity:.8">اللي يجيب صح وأسرع يأخذ نقاط أكثر ⚡</span>
+      </div>
       <input class="input-field" id="inp-name" placeholder="اسمك" maxlength="20"
         onkeydown="if(event.key==='Enter')window.joinRoom()">
-      <button class="btn-join" onclick="window.joinRoom()">انضم الآن 🚀</button>
+      <button class="btn-join" onclick="window.joinRoom()">انضم الآن 🌸</button>
       <div class="err" id="join-err"></div>
     </div>
   `;
@@ -355,13 +358,23 @@ function listenForNextRoom() {
 }
 
 function showWaiting() {
+  const shareUrl = location.href.split('?')[0];
   document.getElementById('app').innerHTML = `
     <div class="waiting-screen">
       <div class="waiting-avatar" style="background:${playerColor}">${playerAvatar}</div>
       <div class="waiting-name">${playerName}</div>
-      <div style="color:var(--muted);font-size:13px;margin-bottom:16px">
-        غرفة: <strong style="color:var(--gold)">${roomCode}</strong>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:12px">في انتظار انضمام اللاعبين الآخرين…</div>
+
+      <!-- Share link -->
+      <div class="live-panel" style="max-width:320px;margin-bottom:12px;text-align:center">
+        <div class="live-panel-title" style="margin-bottom:8px">📢 ادعُ أصدقاءك</div>
+        <div style="font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:8px">${shareUrl}</div>
+        <button onclick="navigator.clipboard.writeText('${shareUrl}').then(()=>this.textContent='✅ تم النسخ!').catch(()=>{})"
+          style="background:linear-gradient(135deg,#c2185b,#e91e8c);color:#fff;border:none;padding:8px 20px;border-radius:50px;font-family:'Tajawal',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
+          📋 نسخ رابط الدعوة
+        </button>
       </div>
+
       <div class="live-panel" style="max-width:320px">
         <div class="live-panel-title">
           اللاعبون <span id="waiting-count" style="color:var(--gold)">0 لاعب</span>
@@ -369,7 +382,7 @@ function showWaiting() {
         <div class="live-players-row" id="waiting-players-list"></div>
       </div>
       <div class="pulse-ring" style="margin-top:8px"><span class="hourglass">⏳</span></div>
-      <div style="margin-top:12px;color:var(--muted);font-size:13px">انتظر المضيف ليبدأ…</div>
+      <div style="margin-top:12px;color:var(--muted);font-size:13px">تبدأ اللعبة تلقائياً عند اكتمال العدد 🌸</div>
     </div>
   `;
   renderWaitingPlayers();
