@@ -991,7 +991,10 @@ function startScheduleWatcher() {
     if (scheduledStartAt > 0 && Date.now() >= scheduledStartAt && phase === 'lobby') {
       clearInterval(scheduleWatchInterval);
       scheduledStartAt = 0;
-      window.startGame();
+      update(ref(db, `rooms/${roomCode}`), {startAt: 0});
+      // Don't start immediately — just open the lobby for players to join
+      // Then checkAutoStart will handle the 5-second countdown when count is reached
+      renderLobby();
     }
   }, 1000);
 }
