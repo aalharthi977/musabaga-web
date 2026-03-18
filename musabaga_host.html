@@ -596,7 +596,7 @@ const AVATARS = ['🦁','🐯','🦊','🐼','🦅','🦋','🐉','🦄','🐺',
 const COLORS = ['#f59e0b','#3b82f6','#ec4899','#10b981','#8b5cf6','#ef4444','#06b6d4','#f97316'];
 
 let roomCode = '';
-let autoStartCount = 2;
+let autoStartCount = 0; // 0 = disabled until host sets it
 let autoLoop = true; // auto-create new game after each game
 let scheduledStartAt = 0; // unix ms, 0 = not scheduled // default 2 for testing
 let gameQuestions = [];
@@ -813,6 +813,8 @@ async function init() {
     phase: 'lobby',
     currentQ: -1,
     createdAt: Date.now(),
+    autoStartCount,
+    autoLoop,
   });
   // Set as the global active room so players can find it
   await set(ref(db, 'activeRoom'), roomCode);
@@ -825,6 +827,15 @@ async function init() {
    LISTENERS
 ════════════════════════════════════ */
 function listenRoom() {
+  // Listen to full room doc to sync settings
+  onValue(ref(db, `rooms/${roomCode}`), snap => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    // Sync settings from Firebase (in case of page reload)
+    if (data.autoStartCount !== undefined) autoStartCount = data.autoStartCount;
+    if (data.autoLoop !== undefined) autoLoop = data.autoLoop;
+  });
+
   // players
   const pRef = ref(db, `rooms/${roomCode}/players`);
   onValue(pRef, snap => {
@@ -964,6 +975,7 @@ function renderLobby() {
 
 _registerFn('updateAutoStart', function(val) {
   autoStartCount = parseInt(val) || 0;
+  update(ref(db, `rooms/${roomCode}`), {autoStartCount});
   checkAutoStart();
 });
 
@@ -1001,6 +1013,7 @@ _registerFn('updateScheduleFromPicker', function() {
 
 _registerFn('toggleLoop', function(val) {
   autoLoop = val;
+  update(ref(db, `rooms/${roomCode}`), {autoLoop});
   renderLobby();
 });
 
