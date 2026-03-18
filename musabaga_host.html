@@ -294,12 +294,113 @@ let unsubFns = [];
 /* ════════════════════════════════════
    INIT
 ════════════════════════════════════ */
-window.endGame = endGame;
-window.nextQuestion = nextQuestion;
-window.showLeaderboardScreen = showLeaderboardScreen;
-window.startGame = startGameFromLobby;
-window.finishGame = finishGame;
-window.copyLink = copyLink;
+// All global functions defined first, then init
+window.copyLink = function(url) {
+  navigator.clipboard.writeText(url).then(() => alert('تم نسخ الرابط!'));
+};
+
+window.endGame = async function() {
+  if (!confirm('هل تريد إنهاء المسابقة؟')) return;
+  clearInterval(timerInterval);
+  await update(ref(db, `rooms/${roomCode}`), { phase:'ended' });
+  location.reload();
+};
+
+window.startGame = async function() {
+  currentQ = 0;
+  document.getElementById('btn-end').style.display = 'flex';
+  document.getElementById('stat-q').textContent = `1/${gameQuestions.length}`;
+  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0 });
+  await pushQuestion(0);
+};
+
+window.revealAnswer = async function() {
+  clearInterval(timerInterval);
+  const idx = currentQ;
+  const q = gameQuestions[idx];
+  phase = 'reveal';
+  const answers = answersCache;
+  const updates = {};
+  const counts = [0,0,0,0];
+  Object.values(answers).forEach(a => { if(a.answer !== undefined) counts[a.answer]++; });
+  let correctPlayers = [];
+  Object.entries(answers).forEach(([pid, data]) => {
+    if (data.answer === q.a) {
+      const speed = Math.max(0, TIMER_SECS - (data.timeTaken||TIMER_SECS));
+      const pts = Math.round(POINTS_BASE * (0.5 + 0.5*(speed/TIMER_SECS)));
+      updates[`rooms/${roomCode}/players/${pid}/score`] = (playersCache[pid]?.score||0) + pts;
+      correctPlayers.push(pid);
+    }
+  });
+  if (Object.keys(updates).length > 0) await update(ref(db), updates);
+  await update(ref(db, `rooms/${roomCode}`), { phase:'reveal' });
+  const letters = ['أ','ب','ج','د'];
+  const total = counts.reduce((a,b)=>a+b,0);
+  document.getElementById('q-area').innerHTML = `
+    <div class="phase-badge">✅ الإجابة الصحيحة</div>
+    <div class="q-card">
+      <div class="q-meta"><span class="q-cat-tag">${q.c}</span></div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="opts-grid">
+      ${q.o.map((opt,i)=>`
+        <div class="opt-bar ${i===q.a?'correct':'wrong'}">
+          <div class="fill-bg" style="width:${total>0?Math.round(counts[i]/total*100):0}%"></div>
+          <div class="opt-letter">${letters[i]}</div>
+          <div class="opt-text">${opt}</div>
+          <div class="opt-count">${counts[i]} ${i===q.a?'✓':''}</div>
+        </div>`).join('')}
+    </div>
+    <div style="text-align:center;padding:12px;color:var(--muted);font-size:14px">
+      ${correctPlayers.length} من ${Object.keys(playersCache).length} أجابوا صح
+    </div>
+    <div class="btns-row">
+      ${currentQ < gameQuestions.length-1
+        ? `<button class="btn btn-gold" onclick="window.nextQuestion()">التالي ▶</button>`
+        : `<button class="btn btn-green" onclick="window.finishGame()">🏆 النتائج النهائية</button>`}
+    </div>
+  `;
+};
+
+
+
+window.finishGame = async function() {
+  clearInterval(timerInterval);
+  await update(ref(db, `rooms/${roomCode}`), { phase:'final' });
+  phase = 'final';
+  const players = Object.entries(playersCache)
+    .map(([id,p])=>({...p,id}))
+    .sort((a,b)=>(b.score||0)-(a.score||0));
+  const medals = ['🥈','🥇','🥉'];
+  const top3 = [players[1],players[0],players[2]].filter(Boolean);
+  document.getElementById('q-area').innerHTML = `
+    <div class="state-screen">
+      <div class="big-icon">🏆</div>
+      <div class="state-title">النتائج النهائية!</div>
+      <div class="podium">
+        ${top3.map((p,i)=>`
+          <div class="podium-block">
+            <div class="p-avatar podium-avatar" style="background:${p?.color||'#555'}">${p?.avatar||'👤'}</div>
+            <div class="podium-name">${p?.name||'—'}</div>
+            <div class="podium-score">${p?.score||0} نقطة</div>
+            <div class="podium-stand">${medals[i]}</div>
+          </div>`).join('')}
+      </div>
+      <div style="width:100%;max-width:500px">
+        ${players.slice(0,10).map((p,i)=>`
+          <div class="results-row">
+            <div class="rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+            <div class="p-avatar" style="background:${p.color||'#555'};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">${p.avatar||'👤'}</div>
+            <div class="p-name" style="flex:1;font-weight:700;padding:0 8px">${p.name}</div>
+            <div class="p-score">${p.score||0}</div>
+          </div>`).join('')}
+      </div>
+      <div class="btns-row">
+        <button class="btn btn-gold" onclick="location.reload()">🔄 جلسة جديدة</button>
+      </div>
+    </div>
+  `;
+};
 
 init();
 
@@ -374,20 +475,12 @@ function renderLobby() {
   }, 100);
 }
 
-function copyLink(url) {
-  navigator.clipboard.writeText(url).then(() => alert('تم نسخ الرابط!'));
-}
+
 
 /* ════════════════════════════════════
    START GAME
 ════════════════════════════════════ */
-async function startGameFromLobby() {
-  currentQ = 0;
-  document.getElementById('btn-end').style.display = 'flex';
-  document.getElementById('stat-q').textContent = `1/${gameQuestions.length}`;
-  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ:0 });
-  await pushQuestion(0);
-}
+
 
 async function pushQuestion(idx) {
   const q = gameQuestions[idx];
@@ -440,7 +533,7 @@ function renderQuestion(idx) {
   startTimer(TIMER_SECS, idx);
 }
 
-window.revealAnswer = revealAnswer;
+
 
 function startTimer(secs, idx) {
   timerLeft = secs;
@@ -474,115 +567,13 @@ function updateLiveAnswerCounts(idx) {
   });
 }
 
-async function revealAnswer() {
-  clearInterval(timerInterval);
-  const idx = currentQ;
-  const q = gameQuestions[idx];
-  phase = 'reveal';
 
-  // calc scores
-  const answers = answersCache;
-  const updates = {};
-  const counts = [0,0,0,0];
-  Object.values(answers).forEach(a => { if(a.answer !== undefined) counts[a.answer]++; });
 
-  // award points
-  let correctPlayers = [];
-  Object.entries(answers).forEach(([pid, data]) => {
-    if (data.answer === q.a) {
-      const speed = Math.max(0, TIMER_SECS - (data.timeTaken||TIMER_SECS));
-      const pts = Math.round(POINTS_BASE * (0.5 + 0.5*(speed/TIMER_SECS)));
-      updates[`rooms/${roomCode}/players/${pid}/score`] = (playersCache[pid]?.score||0) + pts;
-      correctPlayers.push(pid);
-    }
-  });
-  if (Object.keys(updates).length > 0) await update(ref(db), updates);
-  await update(ref(db, `rooms/${roomCode}`), { phase:'reveal' });
 
-  // show reveal UI
-  const letters = ['أ','ب','ج','د'];
-  const total = counts.reduce((a,b)=>a+b,0);
-  document.getElementById('q-area').innerHTML = `
-    <div class="phase-badge">✅ الإجابة الصحيحة</div>
-    <div class="q-card">
-      <div class="q-meta"><span class="q-cat-tag">${q.c}</span></div>
-      <div class="q-text">${q.q}</div>
-    </div>
-    <div class="opts-grid">
-      ${q.o.map((opt,i)=>`
-        <div class="opt-bar ${i===q.a?'correct':'wrong'}" id="opt-${i}">
-          <div class="fill-bg" style="width:${total>0?Math.round(counts[i]/total*100):0}%"></div>
-          <div class="opt-letter">${letters[i]}</div>
-          <div class="opt-text">${opt}</div>
-          <div class="opt-count">${counts[i]} ${i===q.a?'✓':''}</div>
-        </div>`).join('')}
-    </div>
-    <div style="text-align:center;padding:12px;color:var(--muted);font-size:14px">
-      ${correctPlayers.length} من ${Object.keys(playersCache).length} أجابوا صح
-    </div>
-    <div class="btns-row">
-      ${currentQ < gameQuestions.length-1
-        ? `<button class="btn btn-gold" onclick="nextQuestion()">التالي ▶</button>`
-        : `<button class="btn btn-green" onclick="finishGame()">🏆 النتائج النهائية</button>`}
-    </div>
-  `;
-}
 
-window.nextQuestion = async function() {
-  currentQ++;
-  await update(ref(db, `rooms/${roomCode}`), { phase:'question', currentQ });
-  await pushQuestion(currentQ);
-};
 
-/* ════════════════════════════════════
-   FINAL
-════════════════════════════════════ */
-window.finishGame = async function() {
-  clearInterval(timerInterval);
-  await update(ref(db, `rooms/${roomCode}`), { phase:'final' });
-  phase = 'final';
-  const players = Object.entries(playersCache)
-    .map(([id,p])=>({...p,id}))
-    .sort((a,b)=>(b.score||0)-(a.score||0));
 
-  const medals = ['🥈','🥇','🥉'];
-  const top3 = [players[1],players[0],players[2]].filter(Boolean);
 
-  document.getElementById('q-area').innerHTML = `
-    <div class="state-screen">
-      <div class="big-icon">🏆</div>
-      <div class="state-title">النتائج النهائية!</div>
-      <div class="podium">
-        ${top3.map((p,i)=>`
-          <div class="podium-block">
-            <div class="p-avatar podium-avatar" style="background:${p?.color||'#555'}">${p?.avatar||'👤'}</div>
-            <div class="podium-name">${p?.name||'—'}</div>
-            <div class="podium-score">${p?.score||0} نقطة</div>
-            <div class="podium-stand">${medals[i]}</div>
-          </div>`).join('')}
-      </div>
-      <div style="width:100%;max-width:500px">
-        ${players.slice(0,10).map((p,i)=>`
-          <div class="results-row">
-            <div class="rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
-            <div class="p-avatar" style="background:${p.color||'#555'};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">${p.avatar||'👤'}</div>
-            <div class="p-name" style="flex:1;font-weight:700;padding:0 8px">${p.name}</div>
-            <div class="p-score">${p.score||0}</div>
-          </div>`).join('')}
-      </div>
-      <div class="btns-row">
-        <button class="btn btn-gold" onclick="location.reload()">🔄 جلسة جديدة</button>
-      </div>
-    </div>
-  `;
-};
-
-async function endGame() {
-  if (!confirm('هل تريد إنهاء المسابقة؟')) return;
-  clearInterval(timerInterval);
-  await update(ref(db, `rooms/${roomCode}`), { phase:'ended' });
-  location.reload();
-}
 
 /* ════════════════════════════════════
    SIDEBAR
