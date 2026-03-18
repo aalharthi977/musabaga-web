@@ -129,6 +129,61 @@ body::before{content:'';position:fixed;inset:0;
   -webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .my-final-score{font-size:40px;font-weight:900;color:var(--gold);margin-bottom:8px}
 .my-final-sub{color:var(--muted);font-size:15px}
+
+  /* ── LIVE PLAYERS PANEL ── */
+  .live-panel {
+    width:100%;max-width:460px;
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--border);
+    border-radius:14px;padding:12px 14px;
+    margin-bottom:12px;
+  }
+  .live-panel-title {
+    font-size:10px;text-transform:uppercase;letter-spacing:2px;
+    color:var(--muted);margin-bottom:10px;text-align:center;
+  }
+  .live-players-row {
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .live-player-item {
+    display:flex;align-items:center;gap:8px;
+    padding:7px 10px;border-radius:10px;
+    background:rgba(255,255,255,.04);
+    transition:all .3s;
+  }
+  .live-player-item.me {
+    background:rgba(240,192,64,.08);
+    border:1px solid rgba(240,192,64,.2);
+  }
+  .live-player-avatar {
+    width:28px;height:28px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;flex-shrink:0;
+  }
+  .live-player-name {
+    flex:1;font-size:13px;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .live-player-score {
+    font-size:12px;font-weight:700;color:var(--gold);
+    min-width:48px;text-align:left;
+  }
+  .live-answered-dot {
+    width:10px;height:10px;border-radius:50%;flex-shrink:0;
+    background:var(--border);transition:all .3s;
+  }
+  .live-answered-dot.done {
+    background:var(--correct);
+    box-shadow:0 0 6px var(--correct);
+  }
+  .live-answered-dot.pending {
+    background:var(--border);
+    animation:pendingPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pendingPulse {
+    0%,100%{opacity:.4} 50%{opacity:1}
+  }
+
 </style>
 </head>
 <body>
@@ -177,6 +232,8 @@ let myPickedAnswer = -1;
 let timerInterval = null;
 let qStartedAt = 0;
 let qTimeLimit = 20;
+let allPlayers = {};
+let currentAnswers = {};
 
 window.joinRoom = joinRoom;
 
@@ -219,11 +276,20 @@ function showWaiting() {
     <div class="waiting-screen">
       <div class="waiting-avatar" style="background:${playerColor}">${playerAvatar}</div>
       <div class="waiting-name">${playerName}</div>
-      <div style="color:var(--muted);font-size:14px;margin-bottom:20px">انتظر بدء المسابقة…</div>
-      <div class="pulse-ring"><span class="hourglass">⏳</span></div>
-      <div style="margin-top:20px;color:var(--muted);font-size:13px">غرفة: <strong style="color:var(--gold)">${roomCode}</strong></div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:16px">
+        غرفة: <strong style="color:var(--gold)">${roomCode}</strong>
+      </div>
+      <div class="live-panel" style="max-width:320px">
+        <div class="live-panel-title">
+          اللاعبون <span id="waiting-count" style="color:var(--gold)">0 لاعب</span>
+        </div>
+        <div class="live-players-row" id="waiting-players-list"></div>
+      </div>
+      <div class="pulse-ring" style="margin-top:8px"><span class="hourglass">⏳</span></div>
+      <div style="margin-top:12px;color:var(--muted);font-size:13px">انتظر المضيف ليبدأ…</div>
     </div>
   `;
+  renderWaitingPlayers();
 }
 
 function listenRoom() {
@@ -252,10 +318,53 @@ function listenRoom() {
     }
   });
 
-  // listen to my score updates
-  onValue(ref(db, `rooms/${roomCode}/players/${playerId}/score`), snap => {
-    if (snap.exists()) myScore = snap.val() || 0;
+  // listen to ALL players (for waiting room + live scoreboard)
+  onValue(ref(db, `rooms/${roomCode}/players`), snap => {
+    allPlayers = snap.val() || {};
+    // update my score
+    if (allPlayers[playerId]) myScore = allPlayers[playerId].score || 0;
+    // refresh whatever is currently showing
+    refreshLivePanel();
+    if (document.getElementById('waiting-players-list')) renderWaitingPlayers();
   });
+
+  // listen to current question answers (who picked)
+  onValue(ref(db, `rooms/${roomCode}/answers`), snap => {
+    const all = snap.val() || {};
+    currentAnswers = all[currentQIdx] || {};
+    refreshLivePanel();
+  });
+}
+
+function renderWaitingPlayers() {
+  const el = document.getElementById('waiting-players-list');
+  if (!el) return;
+  const players = Object.entries(allPlayers).sort((a,b) => (a[1].joinedAt||0)-(b[1].joinedAt||0));
+  el.innerHTML = players.map(([id, p]) => `
+    <div class="live-player-item ${id===playerId?'me':''}">
+      <div class="live-player-avatar" style="background:${p.color||'#555'}">${p.avatar||'👤'}</div>
+      <div class="live-player-name">${p.name}${id===playerId?' (أنت)':''}</div>
+    </div>
+  `).join('');
+  const countEl = document.getElementById('waiting-count');
+  if (countEl) countEl.textContent = players.length + ' لاعب';
+}
+
+function refreshLivePanel() {
+  const panel = document.getElementById('live-players-panel');
+  if (!panel) return;
+  const players = Object.entries(allPlayers)
+    .sort((a,b) => (b[1].score||0)-(a[1].score||0));
+  panel.innerHTML = players.map(([id, p]) => {
+    const answered = !!currentAnswers[id];
+    return `
+      <div class="live-player-item ${id===playerId?'me':''}">
+        <div class="live-player-avatar" style="background:${p.color||'#555'}">${p.avatar||'👤'}</div>
+        <div class="live-player-name">${p.name}${id===playerId?' ✦':''}</div>
+        <div class="live-player-score">${p.score||0} نقطة</div>
+        <div class="live-answered-dot ${answered?'done':'pending'}" title="${answered?'أجاب':'لم يجب بعد'}"></div>
+      </div>`;
+  }).join('');
 }
 
 async function showRevealOnPlayer() {
@@ -354,9 +463,14 @@ function renderQuestion(q, idx) {
             <span>${opt}</span>
           </button>`).join('')}
       </div>
+      <div class="live-panel" style="margin-top:12px">
+        <div class="live-panel-title">النتائج المباشرة</div>
+        <div class="live-players-row" id="live-players-panel"></div>
+      </div>
     </div>
   `;
   startPlayerTimer();
+  refreshLivePanel();
 }
 
 function startPlayerTimer() {
@@ -405,8 +519,13 @@ window.pickAnswer = async function(i) {
         </div>
         <div class="pts">${myScore}</div>
       </div>
+      <div class="live-panel" style="max-width:320px;margin-top:16px">
+        <div class="live-panel-title">من أجاب؟</div>
+        <div class="live-players-row" id="live-players-panel"></div>
+      </div>
     </div>
   `;
+  refreshLivePanel();
 };
 
 function disableOptions() {
